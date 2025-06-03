@@ -1,0 +1,28 @@
+
+{
+  "SerializedShaderGraph": {
+    "m_Name": "ThickOutline",
+    "m_Path": "Assets/ThickOutline.shadergraph",
+    "m_Target": "Universal",
+    "m_Properties": [
+      {
+        "Name": "_OutlineColor",
+        "Type": "Color",
+        "DefaultValue": [0, 0, 0, 1]
+      },
+      {
+        "Name": "_OutlineWidth",
+        "Type": "Float",
+        "DefaultValue": 1
+      }
+    ],
+    "m_Nodes": [
+      "Normal Vector",
+      "Multiply",
+      "Add",
+      "Position",
+      "Is Front Face",
+      "Branch"
+    ]
+  }
+}
