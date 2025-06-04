@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using Unity.Collections;
-using Unity.Jobs;
 using UnityEngine;
-using static UnityEngine.Rendering.VirtualTexturing.Debugging;
 using Leap;
-using UnityEngine.UIElements;
 
+[RequireComponent(typeof(LeapServiceProvider))]
 public class TrackingInputInterface : MonoBehaviour
 {
     // Private value storage to store all the 3 parameters we want to extract from the tracker
@@ -16,25 +11,14 @@ public class TrackingInputInterface : MonoBehaviour
     [SerializeField] private int _pieceOrientation = 0;
 
     [SerializeField] private Vector3 scalingFactor = new(40f, 30f, 30f);
-    [SerializeField] private Vector3 initialDisplacement = new(-115f, -395f, 30f);
+    [SerializeField] private Vector3 initialDisplacement = new(0f, -5f, 5f);
     [SerializeField] private Vector3 _piecePosition = Vector3.zero;
 
     [SerializeField] private LeapServiceProvider leapProvider;
 
-    // Awake is called once at the very beginning. (Unlike Start(), which is called once just before the first Update())
-    void Awake()
-    {
-        if (leapProvider == null)
-        {
-            leapProvider = FindFirstObjectByType<LeapServiceProvider>();
+    private void Awake() => leapProvider = leapProvider != null ? leapProvider : GetComponent<LeapServiceProvider>();
 
-            if (leapProvider == null)
-            throw new MissingReferenceException("No LeapServiceProvider found in scene.");
-            
-        }
-    }
-
-    void Update()
+    private void Update()
     {
         var frame = leapProvider.CurrentFrame;
         var leftHand = frame.Hands.Find(h => h.IsLeft);
