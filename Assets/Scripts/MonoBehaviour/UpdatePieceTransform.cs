@@ -1,4 +1,5 @@
 using System;
+using TMPro;
 using UnityEngine;
 using static UnityEngine.UI.Image;
 
@@ -9,11 +10,13 @@ public class UpdatePieceTransform : MonoBehaviour
     [SerializeField] private GameObject inputManager;
 
 
+
     private void Awake()
     {
         if (inputManager == null) inputManager = GameObject.Find("TrackingInputManager");
         if (inputManager == null) throw new MissingReferenceException("Cannot find required tracking input manager");
         input = inputManager.GetComponent<TrackingInputInterface>();
+
         ResetStack();
     }
 
@@ -32,7 +35,7 @@ public class UpdatePieceTransform : MonoBehaviour
         );
     }
 
-    private void ResetStack()
+    public void ResetStack()
     {
         ModifyStackHeight[] modifiers = GetComponentsInChildren<ModifyStackHeight>();
         if (modifiers.Length != 3) throw new InvalidOperationException("Invalid number of stacks found. Requires 3.");
@@ -44,4 +47,5 @@ public class UpdatePieceTransform : MonoBehaviour
         );
     }
 
+    public Vector3 StackHeights => stackHeights;
 }
