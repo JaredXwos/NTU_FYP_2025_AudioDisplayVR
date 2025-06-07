@@ -2,35 +2,39 @@ using UnityEngine;
 
 public static class Chord
 {
-    public static Vector3 Silence(float freq) => Vector3.zero;
+    public static double[] Silence(double freq) => new double[] { 0, 0, 0 };
 
-    public static Vector3 SameNoteOver3Octaves(float freq) =>
-        new(freq, 2 * freq, 4 * freq);
+    public static double[] SameNoteOver3Octaves(double freq) =>
+        new double[] { freq, 2 * freq, 4 * freq };
+
+    public static double[] ExtendedConsonantHarmonics(double freq) => 
+        new double[] {freq * 1.0, freq * 2.0,  freq * 3.0,  freq * 4.0, freq * 6.0};
+
     // Traditional triads
-    public static Vector3 MajorTriadJustIntonation(float freq) =>
-        new(freq, freq * 5f / 4f, freq * 3f / 2f);
+    public static double[] MajorTriadJustIntonation(double freq) =>
+        new double[] { freq, freq * 5.0 / 4.0, freq * 3.0 / 2.0 };
 
-    public static Vector3 MajorTriadWideJustIntonation(float freq) =>
-        new(freq, freq * 5f / 2f * 2f, freq * 6f);
+    public static double[] MajorTriadWideJustIntonation(double freq) =>
+        new double[] { freq, freq * 5.0 / 2.0 * 2.0, freq * 6.0 };
 
-    public static Vector3 MinorTriadJustIntonation(float freq) =>
-        new(freq, freq * 6f / 5f, freq * 3f / 2f);
+    public static double[] MinorTriadJustIntonation(double freq) =>
+        new double[] { freq, freq * 6.0 / 5.0, freq * 3.0 / 2.0 };
 
     // Suspended triads
-    public static Vector3 Sus2TriadJustIntonation(float freq) => // Root, major 2nd, perfect 5th
-        new(freq, freq * 9f / 8f, freq * 3f / 2f);
+    public static double[] Sus2TriadJustIntonation(double freq) =>
+        new double[] { freq, freq * 9.0 / 8.0, freq * 3.0 / 2.0 };
 
-    public static Vector3 Sus4TriadJustIntonation(float freq) => // Root, perfect 4th, perfect 5th
-        new(freq, freq * 4f / 3f, freq * 3f / 2f);
+    public static double[] Sus4TriadJustIntonation(double freq) =>
+        new double[] { freq, freq * 4.0 / 3.0, freq * 3.0 / 2.0 };
 
     // Altered triads
-    public static Vector3 DiminishedTriadJustIntonation(float freq) => // Root, minor 3rd, diminished 5th
-        new(freq, freq * 6f / 5f, freq * 45f / 32f); // 45/32 = diminished 5th
+    public static double[] DiminishedTriadJustIntonation(double freq) =>
+        new double[] { freq, freq * 6.0 / 5.0, freq * 45.0 / 32.0 };
 
-    public static Vector3 AugmentedTriadJustIntonation(float freq) => // Root, major 3rd, augmented 5th
-        new(freq, freq * 5f / 4f, freq * 25f / 16f); // 25/16 = augmented 5th
+    public static double[] AugmentedTriadJustIntonation(double freq) =>
+        new double[] { freq, freq * 5.0 / 4.0, freq * 25.0 / 16.0 };
 
-    // Quartal triad (stacked perfect 4ths)
-    public static Vector3 QuartalTriadJustIntonation(float freq) =>
-        new(freq, freq * 4f / 3f, freq * 16f / 9f); // 4/3 and 16/9 = two stacked P4s
+    // Quartal triad
+    public static double[] QuartalTriadJustIntonation(double freq) =>
+        new double[] { freq, freq * 4.0 / 3.0, freq * 16.0 / 9.0 };
 }

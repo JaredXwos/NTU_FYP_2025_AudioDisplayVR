@@ -6,13 +6,15 @@ using UnityEngine;
 [BurstCompile]
 public struct GenerateToneJob : IJobParallelFor
 {
-    public float frequency;
+    public double frequency;
     public float sampleRate;
+
+    [NativeDisableParallelForRestriction]
     public NativeArray<float> samples;
 
     public void Execute(int i)
     {
         float t = i / sampleRate;
-        samples[i] = Mathf.Sin(2f * Mathf.PI * frequency * t);
+        samples[i] = Mathf.Sin((float)(2f * Mathf.PI * frequency * t));
     }
 }

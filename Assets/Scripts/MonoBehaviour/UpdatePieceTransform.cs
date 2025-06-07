@@ -8,8 +8,8 @@ public class UpdatePieceTransform : MonoBehaviour
     [SerializeField] private Vector3Int stackHeights = Vector3Int.zero;
     [SerializeField] private TrackingInputInterface input;
     [SerializeField] private GameObject inputManager;
-
-
+    [SerializeField] private Vector3 piecePosition;
+    [SerializeField] private CollisionChecker[] checkers;
 
     private void Awake()
     {
@@ -17,11 +17,16 @@ public class UpdatePieceTransform : MonoBehaviour
         if (inputManager == null) throw new MissingReferenceException("Cannot find required tracking input manager");
         input = inputManager.GetComponent<TrackingInputInterface>();
 
+        checkers = GetComponentsInChildren<CollisionChecker>();
+
         ResetStack();
     }
 
     private void Update()
     {
+        Vector3 oldAngle = transform.eulerAngles;
+        Vector3 oldPosition = transform.position;
+
         transform.eulerAngles = new Vector3(
             0f, 
             (input.PieceOrientation * 90) % 360, 
@@ -33,6 +38,16 @@ public class UpdatePieceTransform : MonoBehaviour
             (int) input.PiecePosition.y, 
             (int) input.PiecePosition.z
         );
+        piecePosition = transform.position;
+
+        foreach(CollisionChecker checker in checkers)
+            if (checker.IsCollided())
+            {
+                transform.position = oldPosition;
+                transform.eulerAngles = oldAngle;
+                return;
+            }
+        
     }
 
     public void ResetStack()

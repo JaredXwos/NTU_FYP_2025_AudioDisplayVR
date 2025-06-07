@@ -1,6 +1,7 @@
 using System;
 using TMPro;
 using UnityEngine;
+using static Unity.VisualScripting.Metadata;
 
 [RequireComponent(typeof(AudioSource))]
 [RequireComponent(typeof(UpdatePieceTransform))]
@@ -22,10 +23,11 @@ public class Broadcast : MonoBehaviour
     public volatile bool requestingUpdate = false;
 
     private void Awake(){
-        toneUtil = new ToneUtil(bufferSubunitRatio, Chord.SameNoteOver3Octaves, Chord.Silence);
+        toneUtil = new SequentialSingleTone(bufferSubunitRatio, Chord.ExtendedConsonantHarmonics, Chord.Silence);
 
         raycasters = GetComponentsInChildren<Raycaster>();
         if (raycasters.Length != 3) throw new InvalidOperationException("Invalid number of stacks found. Requires 3.");
+        Array.Sort(raycasters, (a, b) => a.sortIndex.CompareTo(b.sortIndex));
 
         updater = GetComponent<UpdatePieceTransform>();
 
@@ -85,4 +87,6 @@ public class Broadcast : MonoBehaviour
             }
         }
     }
+
+    private void OnDestroy() => toneUtil.Dispose();
 }
