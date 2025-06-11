@@ -655,12 +655,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 322453126}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ba094d560d515744ca461dc413d49fe0, type: 3}
+  m_Script: {fileID: 11500000, guid: 4d0e652cd7b9baf46bdd2910d2e6ed4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   scalingFactor: {x: 40, y: 30, z: 30}
   initialDisplacement: {x: 0, y: -5, z: 5}
-  sensitivity: 10
 --- !u!1 &826548270
 GameObject:
   m_ObjectHideFlags: 0
@@ -2362,6 +2361,7 @@ MonoBehaviour:
   inputManager: {fileID: 322453126}
   piecePosition: {x: 0, y: 0, z: 0}
   checkers: []
+  illegal: 0
 --- !u!114 &1720437268
 MonoBehaviour:
   m_ObjectHideFlags: 0

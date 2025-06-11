@@ -2,7 +2,6 @@ using Leap;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
-using static Unity.Collections.AllocatorManager;
 
 [RequireComponent(typeof(LeapServiceProvider))]
 public class TrackingInputInterface : MonoBehaviour
@@ -18,6 +17,7 @@ public class TrackingInputInterface : MonoBehaviour
     protected Vector3 _piecePosition = Vector3.zero;
 
     private LeapServiceProvider leapProvider;
+    private Frame _cachedFrame;
 
     protected CancellationTokenSource tokenSource;
     protected CancellationToken token;
@@ -31,18 +31,17 @@ public class TrackingInputInterface : MonoBehaviour
         Task.Run(BackgroundUpdate);
     }
 
-    private void OnDestroy()
-    {
-        tokenSource.Cancel();
-    }
+    private void OnDestroy() => tokenSource.Cancel();
 
-    protected virtual async void BackgroundUpdate()
+    private void Update() => _cachedFrame = leapProvider.CurrentFrame;
+
+    protected virtual void BackgroundUpdate()
     {
         while (!token.IsCancellationRequested)
         {
-            Frame frame = leapProvider.CurrentFrame;
-            Hand leftHand = frame.Hands.Find(h => h.IsLeft);
-            Hand rightHand = frame.Hands.Find(h => !h.IsLeft);
+            if (_cachedFrame == null) continue;
+            Hand leftHand = _cachedFrame.Hands.Find(h => h.IsLeft);
+            Hand rightHand = _cachedFrame.Hands.Find(h => !h.IsLeft);
 
             // Assign clockwise moment from the roll of the left hand, with 0 roll being palm down.
             // Vector 1, Vector 2, the plane of comparison
@@ -79,7 +78,6 @@ public class TrackingInputInterface : MonoBehaviour
                 rightHand.PalmPosition,
                 scalingFactor
             );
-            await Task.Delay(100);
         }
     }
 

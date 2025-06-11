@@ -5,7 +5,7 @@ public class SimulatedInputInterface : TrackingInputInterface
     [SerializeField] int sensitivity = 10;
     private int[] counters = new int[8];
     private static readonly KeyCode[] keys = new KeyCode[]{ KeyCode.Q, KeyCode.E, KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Space, KeyCode.LeftShift };
-    protected override async void BackgroundUpdate() {
+    protected override void BackgroundUpdate() {
         while(!token.IsCancellationRequested)
         lock (_lock)
         {
