@@ -37,9 +37,9 @@ public abstract class ToneUtil : IDisposable
     public NativeArray<float> MainBuffer => mainBuffer;
 }
 
-public class DisjointChordEntry : ToneUtil
+public class DisjointNoteTermination : ToneUtil
 {
-    public DisjointChordEntry(int bufferSubunitRatio, Func<double, double[]> major, Func<double, double[]> minor) :
+    public DisjointNoteTermination(int bufferSubunitRatio, Func<double, double[]> major, Func<double, double[]> minor) :
         base(bufferSubunitRatio, 5, major, minor) { }
 
     public override void RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize)
@@ -94,7 +94,7 @@ public class SequentialSingleTone : ToneUtil
     {
         double[] notes = isMajor ? MajorChord(freq) : MinorChord(freq);
 
-        int constituentBufferSize = 2 * bufferSubunitSize;
+        int constituentBufferSize = bufferSubunitSize;
 
         int[] selection = new int[] { gapSize.x, gapSize.y, gapSize.z };
         JobHandle[] Jobs = new JobHandle[3];

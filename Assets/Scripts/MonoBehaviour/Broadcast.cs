@@ -24,6 +24,8 @@ public class Broadcast : MonoBehaviour
 
     private void Awake(){
         toneUtil = new SequentialSingleTone(bufferSubunitRatio, Chord.ExtendedConsonantHarmonics, Chord.Silence);
+        // toneUtil = new DisjointNoteTermination(bufferSubunitRatio, Chord.Silence, Chord.Silence);
+        // toneUtil = new DisjointNoteTermination(bufferSubunitRatio, Chord.SameNoteOver3Octaves, Chord.Silence);
 
         raycasters = GetComponentsInChildren<Raycaster>();
         if (raycasters.Length != 3) throw new InvalidOperationException("Invalid number of stacks found. Requires 3.");

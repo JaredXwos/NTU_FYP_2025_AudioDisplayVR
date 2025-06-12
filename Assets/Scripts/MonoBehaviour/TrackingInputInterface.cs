@@ -6,22 +6,39 @@ using UnityEngine;
 [RequireComponent(typeof(LeapServiceProvider))]
 public class TrackingInputInterface : MonoBehaviour
 {
-    // Private value storage to store all the 3 parameters we want to extract from the tracker
-    protected float _clockwiseMoment = 0.0f;
+    // LEAP MOTION INPUT DATA
+    // -----------------------------------------------------------------------------
+    protected Vector3 leftPalmNormalNormalised;
+    protected Vector3 leftDirectionNormalised;
+    protected Vector3 rightPalmNormalNormalised;
+    protected Vector3 rightPalmPosition;
 
-    protected int _lastYawZone = 0;
-    protected int _pieceOrientation = 0;
+    protected bool leftHandExists;
+    protected bool rightHandExists;
 
+    protected readonly object inputLock = new();
+
+    // INTERFACE OUTPUT DATA
+    // -----------------------------------------------------------------------------
+    [SerializeField] protected float _clockwiseMoment = 0.0f;
+    [SerializeField] protected int _pieceOrientation = 0;
+    [SerializeField] protected Vector3 _piecePosition = Vector3.zero;
+        
+    protected readonly object outputLock = new();
+
+    // OUTPUT AND CONTROL PARAMETERS
+    // -----------------------------------------------------------------------------
     [SerializeField] protected Vector3 scalingFactor = new(40f, 30f, 30f);
     [SerializeField] protected Vector3 initialDisplacement = new(0f, -5f, 5f);
-    protected Vector3 _piecePosition = Vector3.zero;
 
-    private LeapServiceProvider leapProvider;
-    private Frame _cachedFrame;
+    // LEAP MOTION SDK AND ASYNC CONTROL
+    // -----------------------------------------------------------------------------
+    protected LeapServiceProvider leapProvider;
 
-    protected CancellationTokenSource tokenSource;
-    protected CancellationToken token;
-    protected readonly object _lock = new();
+    protected CancellationTokenSource tokenSource;  // This is to send the suicide instruction
+    protected CancellationToken token;              // This is to receive the suicide instruction
+    
+    
 
     private void Awake()
     {
@@ -33,31 +50,52 @@ public class TrackingInputInterface : MonoBehaviour
 
     private void OnDestroy() => tokenSource.Cancel();
 
-    private void Update() => _cachedFrame = leapProvider.CurrentFrame;
+    private void Update(){
+        Frame currentFrame = leapProvider.CurrentFrame;
+        if (currentFrame == null) return;
+        lock (inputLock)
+        {
+            Hand leftHand = currentFrame.Hands.Find(h => h.IsLeft);
+            leftHandExists = leftHand != null;
+            if (leftHandExists)
+            {
+                leftPalmNormalNormalised = leftHand.PalmNormal.normalized;
+                leftDirectionNormalised = leftHand.Direction.normalized;
+            }
+
+            Hand rightHand = currentFrame.Hands.Find(h => !h.IsLeft);
+            rightHandExists = rightHand != null;
+            if (rightHandExists)
+            {
+                rightPalmNormalNormalised = rightHand.PalmNormal.normalized;
+                rightPalmPosition = rightHand.PalmPosition;
+            }
+        }
+    } 
 
     protected virtual void BackgroundUpdate()
     {
+        int _lastYawZone = 0;
         while (!token.IsCancellationRequested)
         {
-            if (_cachedFrame == null) continue;
-            Hand leftHand = _cachedFrame.Hands.Find(h => h.IsLeft);
-            Hand rightHand = _cachedFrame.Hands.Find(h => !h.IsLeft);
-
             // Assign clockwise moment from the roll of the left hand, with 0 roll being palm down.
             // Vector 1, Vector 2, the plane of comparison
-            if (leftHand != null) _clockwiseMoment = Vector3.SignedAngle(
+            if (leftHandExists) 
+                lock(inputLock)
+                _clockwiseMoment = Vector3.SignedAngle(
                 Vector3.down,
-                leftHand.PalmNormal.normalized,
-                leftHand.Direction.normalized
+                leftPalmNormalNormalised,
+                leftDirectionNormalised
             );
 
-            if (rightHand == null) continue;
-
+            if (!rightHandExists) continue;
 
             // Assign piece orientation from vertical pitch gestures
-            int currentYawZone = Vector3.SignedAngle(
+            int currentYawZone;
+            lock (inputLock)
+            currentYawZone = Vector3.SignedAngle(
                 Vector3.left,
-                rightHand.PalmNormal.normalized,
+                rightPalmNormalNormalised,
                 Vector3.up
             ) switch
             {
@@ -66,31 +104,17 @@ public class TrackingInputInterface : MonoBehaviour
                 _ => 0
             };
 
-
             if (_lastYawZone == 0 && currentYawZone != 0)
-                lock(_lock) _pieceOrientation += currentYawZone;
+                lock(outputLock) _pieceOrientation += currentYawZone;
 
             _lastYawZone = currentYawZone;
 
 
             // Apply scaling and displacement
-            lock (_lock) _piecePosition = initialDisplacement + Vector3.Scale(
-                rightHand.PalmPosition,
+            lock (outputLock) lock(inputLock) _piecePosition = initialDisplacement + Vector3.Scale(
+                rightPalmPosition,
                 scalingFactor
             );
-        }
-    }
-
-    protected float _debugTimer = 0f;
-    private const float _debugInterval = 0.5f;
-    private void FixedUpdate()
-    {
-        _debugTimer += Time.fixedDeltaTime;
-
-        if (_debugTimer >= _debugInterval)
-        {
-            PrintToDebug();
-            _debugTimer = 0f;
         }
     }
 
@@ -101,15 +125,8 @@ public class TrackingInputInterface : MonoBehaviour
     {
         get
         {
-            lock (_lock) return _piecePosition;
+            lock (outputLock) return _piecePosition;
         }
-    }
-
-    public void PrintToDebug()
-    { 
-        Debug.Log($"ClockwiseMoment: {ClockwiseMoment}, " +
-                  $"PieceOrientation: {PieceOrientation}, " +
-                  $"PiecePosition: {PiecePosition}");
     }
 }
 
