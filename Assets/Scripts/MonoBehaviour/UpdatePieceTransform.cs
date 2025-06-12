@@ -6,6 +6,7 @@ public class UpdatePieceTransform : MonoBehaviour
     [SerializeField] private Vector3Int stackHeights = Vector3Int.zero;
     
     [SerializeField] private GameObject inputManager;
+    [SerializeField] private GameObject Base;
     [SerializeField] private bool illegal;
     [SerializeField] private Vector3 basetop;
     [SerializeField] private Vector3 piecebottom;
@@ -13,12 +14,7 @@ public class UpdatePieceTransform : MonoBehaviour
     private ModifyStackHeight[] modifiers;
     private TrackingInputInterface input;
 
-    private static readonly int[][] baseHeights = new int[][]{
-        new int[] {3, 2, 3, 1},
-        new int[] {3, 1, 3, 3},
-        new int[] {2, 2, 1, 1},
-        new int[] {1, 1, 1, 2}
-    };
+    private static int[][] baseHeights;
 
     private void Awake()
     {
@@ -29,6 +25,11 @@ public class UpdatePieceTransform : MonoBehaviour
         modifiers = GetComponentsInChildren<ModifyStackHeight>();
         if (modifiers.Length != 3) throw new InvalidOperationException("Invalid number of stacks found. Requires 3.");
         Array.Sort(modifiers, (a, b) => a.sortIndex.CompareTo(b.sortIndex));
+
+        if (Base == null) Base = GameObject.Find("Omnibase");
+        if (Base == null) throw new MissingReferenceException("Cannot find the base");
+        BaseInitialiser initialiser = Base.GetComponent<BaseInitialiser>();
+        baseHeights = initialiser.CurrentBase;
 
         ResetStack();
     }

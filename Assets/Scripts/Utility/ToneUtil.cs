@@ -14,10 +14,10 @@ public abstract class ToneUtil : IDisposable
     protected NativeArray<float> mainBuffer;
 
     public volatile bool isSafe = true;
-    protected readonly Func<double, double[]> MajorChord;
-    protected readonly Func<double, double[]> MinorChord;
+    protected readonly ChordGenerator MajorChord;
+    protected readonly ChordGenerator MinorChord;
 
-    protected ToneUtil(int bufferSubunitRatio, int NumberOfBufferSubunits, Func<double, double[]> major, Func<double, double[]> minor)
+    protected ToneUtil(int bufferSubunitRatio, int NumberOfBufferSubunits, ChordGenerator major, ChordGenerator minor)
     {
         sampleRate = AudioSettings.outputSampleRate;
 
@@ -39,7 +39,7 @@ public abstract class ToneUtil : IDisposable
 
 public class DisjointNoteTermination : ToneUtil
 {
-    public DisjointNoteTermination(int bufferSubunitRatio, Func<double, double[]> major, Func<double, double[]> minor) :
+    public DisjointNoteTermination(int bufferSubunitRatio, ChordGenerator major, ChordGenerator minor) :
         base(bufferSubunitRatio, 5, major, minor) { }
 
     public override void RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize)
@@ -87,7 +87,7 @@ public class DisjointNoteTermination : ToneUtil
 
 public class SequentialSingleTone : ToneUtil
 {
-    public SequentialSingleTone(int bufferSubunitRatio, Func<double, double[]> major, Func<double, double[]> minor) :
+    public SequentialSingleTone(int bufferSubunitRatio, ChordGenerator major, ChordGenerator minor) :
         base(bufferSubunitRatio, 7, major, minor) {}
 
     public override void RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize)

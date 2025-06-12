@@ -1,40 +1,51 @@
-using UnityEngine;
-
+public delegate double[] ChordGenerator(double frequency);
 public static class Chord
 {
-    public static double[] Silence(double freq) => new double[] { 0, 0, 0 };
+    // -------------------------------------------------------------------------
+    // BASE CHORDS
+    // -------------------------------------------------------------------------
+    public static readonly ChordGenerator Silence = freq =>
+        new double[] { 0, 0, 0 };
 
-    public static double[] SameNoteOver3Octaves(double freq) =>
+    public static readonly ChordGenerator SameNoteOver3Octaves = freq =>
         new double[] { freq, 2 * freq, 4 * freq };
 
-    public static double[] ExtendedConsonantHarmonics(double freq) => 
-        new double[] {freq * 1.0, freq * 2.0,  freq * 3.0,  freq * 4.0, freq * 6.0};
+    public static readonly ChordGenerator ExtendedConsonantHarmonics = freq =>
+        new double[] { freq * 1.0, freq * 2.0, freq * 3.0, freq * 4.0, freq * 6.0 };
 
-    // Traditional triads
-    public static double[] MajorTriadJustIntonation(double freq) =>
+    // -------------------------------------------------------------------------
+    // TRADITIONAL TRIADS
+    // -------------------------------------------------------------------------
+    public static readonly ChordGenerator MajorTriadJustIntonation = freq =>
         new double[] { freq, freq * 5.0 / 4.0, freq * 3.0 / 2.0 };
 
-    public static double[] MajorTriadWideJustIntonation(double freq) =>
+    public static readonly ChordGenerator MajorTriadWideJustIntonation = freq =>
         new double[] { freq, freq * 5.0 / 2.0 * 2.0, freq * 6.0 };
 
-    public static double[] MinorTriadJustIntonation(double freq) =>
+    public static readonly ChordGenerator MinorTriadJustIntonation = freq =>
         new double[] { freq, freq * 6.0 / 5.0, freq * 3.0 / 2.0 };
 
-    // Suspended triads
-    public static double[] Sus2TriadJustIntonation(double freq) =>
+    // -------------------------------------------------------------------------
+    // SUSPENDED TRIADS
+    // -------------------------------------------------------------------------
+    public static readonly ChordGenerator Sus2TriadJustIntonation = freq =>
         new double[] { freq, freq * 9.0 / 8.0, freq * 3.0 / 2.0 };
 
-    public static double[] Sus4TriadJustIntonation(double freq) =>
+    public static readonly ChordGenerator Sus4TriadJustIntonation = freq =>
         new double[] { freq, freq * 4.0 / 3.0, freq * 3.0 / 2.0 };
 
-    // Altered triads
-    public static double[] DiminishedTriadJustIntonation(double freq) =>
+    // -------------------------------------------------------------------------
+    // ALTERED TRIADS
+    // -------------------------------------------------------------------------
+    public static readonly ChordGenerator DiminishedTriadJustIntonation = freq =>
         new double[] { freq, freq * 6.0 / 5.0, freq * 45.0 / 32.0 };
 
-    public static double[] AugmentedTriadJustIntonation(double freq) =>
+    public static readonly ChordGenerator AugmentedTriadJustIntonation = freq =>
         new double[] { freq, freq * 5.0 / 4.0, freq * 25.0 / 16.0 };
 
-    // Quartal triad
-    public static double[] QuartalTriadJustIntonation(double freq) =>
+    // -------------------------------------------------------------------------
+    // QUARTAL TRIADS
+    // -------------------------------------------------------------------------
+    public static readonly ChordGenerator QuartalTriadJustIntonation = freq =>
         new double[] { freq, freq * 4.0 / 3.0, freq * 16.0 / 9.0 };
 }
