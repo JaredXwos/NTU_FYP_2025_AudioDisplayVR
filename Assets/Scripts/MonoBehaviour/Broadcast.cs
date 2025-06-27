@@ -1,6 +1,11 @@
 using System;
 using TMPro;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.Windows;
 
 [RequireComponent(typeof(AudioSource))]
 [RequireComponent(typeof(UpdatePieceTransform))]
@@ -17,13 +22,25 @@ public class Broadcast : MonoBehaviour
     [SerializeField] private int gameMode = 0;                        // Editor handle to configure the toneUtil
     private ToneUtil toneUtil;                                        // Active tone generator instance
 
+    // Mic Configuration
+
+    private NativeArray<float> leftChannel;
+    private NativeArray<float> rightChannel;
+    [SerializeField] float2 earDistance = new(0.5f,0);
+    [SerializeField] private int sampleRate;
+    [SerializeField] private float centreAttenuationFactor = 1;
+    [SerializeField] private float tiltSensitivity = 0.01f;
+    private bool binauralSafe = true;
+    [SerializeField] private SpatializationParams sparams;
+
     // -----------------------------------------------------------------------------
     // GAMEPLAY STATE FIELDS
     // -----------------------------------------------------------------------------
     private int score = 0;                                            // Player score
     private Quaternion rotation = Quaternion.identity;                // Current piece rotation
     private volatile bool requestingUpdate = false;                   // Triggers stack + audio refresh
-
+    [SerializeField] private GameObject inputManager;
+    private TrackingInputInterface inputs;
     // -----------------------------------------------------------------------------
     // STACK + RAYCASTING FIELDS
     // -----------------------------------------------------------------------------
@@ -50,6 +67,15 @@ public class Broadcast : MonoBehaviour
         Array.Sort(raycasters, (a, b) => a.sortIndex.CompareTo(b.sortIndex));
 
         updater = GetComponent<UpdatePieceTransform>();
+
+        if (inputManager == null) inputManager = GameObject.Find("TrackingInputManager");
+        if (inputManager == null) throw new MissingReferenceException("Cannot find required tracking input manager");
+        inputs = inputManager.GetComponent<TrackingInputInterface>();
+        leftChannel = new NativeArray<float>(toneUtil.MainBuffer, Allocator.Persistent);
+        rightChannel = new NativeArray<float>(toneUtil.MainBuffer, Allocator.Persistent);
+
+
+        sampleRate = toneUtil.sampleRate;
 
         if (statusText == null)
         {
@@ -92,24 +118,77 @@ public class Broadcast : MonoBehaviour
             Vector3Int silenceDuration = isMajor ? distances : Vector3Int.zero;
             toneUtil.RefreshBuffer(baseFreq, isMajor, silenceDuration);
         }
+        float2 whitePosition = new(
+                math.tanh(inputs.ClockwiseMoment * tiltSensitivity),
+                0.0f
+            );
+        while (!toneUtil.isSafe);
+        binauralSafe = false;
+        leftChannel.AsSpan().Clear();  // In Unity 2022.2+
+        rightChannel.AsSpan().Clear();
+        sparams = new(
+            earDistance,
+            whitePosition,
+            343.0f,
+            toneUtil.sampleRate,
+            centreAttenuationFactor
+        );
+        new SpatializeAddJob
+        {
+            input = toneUtil.WhiteBuffer,
+            shiftL = sparams.shiftL,
+            shiftR = sparams.shiftR,
+            gainL = sparams.gainL,
+            gainR = sparams.gainR,
+            centerGain = sparams.centerGain,
+            outputLeft = leftChannel,
+            outputRight = rightChannel,
+        }.Schedule(toneUtil.WhiteBuffer.Length, 64).Complete();
+        binauralSafe = true;
     }
 
     private void OnAudioFilterRead(float[] data, int channels)
     {
         for (int i = 0; i < data.Length; i += channels)
         {
-            float sample = toneUtil.isSafe? toneUtil.MainBuffer[read++] : 0f;
-
-            for (int c = 0; c < channels; c++)
-                data[i + c] = sample;
-
-            if (read >= toneUtil.bufferSubunitSize * 5)
+            float sampleL = binauralSafe ? leftChannel[read] : 0f;
+            float sampleR = binauralSafe ? rightChannel[read] : 0f;
+            float mainSample = toneUtil.isSafe ? toneUtil.MainBuffer[read] : 0f;
+            switch (channels)
             {
-                read %= toneUtil.bufferSubunitSize * 5;
+                case 1:
+                    // Mono: average of both channels
+                    data[i] = 0.5f * (sampleL + sampleR);
+                    break;
+
+                case 2:
+                    // Stereo: left and right
+                    data[i] = sampleL;
+                    data[i + 1] = sampleR;
+                    break;
+
+                default:
+                    // Multichannel: copy left into first, right into second, silence for others
+                    data[i] = sampleL;
+                    data[i + 1] = sampleR;
+                    for (int c = 2; c < channels; c++) data[i + c] = 0f;
+                    break;
+            }
+
+            read++;
+
+            if (read >= leftChannel.Length || read >= rightChannel.Length)
+            {
+                read %= math.min(leftChannel.Length, rightChannel.Length);
                 requestingUpdate = true;
             }
         }
     }
 
-    private void OnDestroy() => toneUtil.Dispose();
+    private void OnDestroy()
+    {
+        toneUtil.Dispose();
+        leftChannel.Dispose(); 
+        rightChannel.Dispose();
+    }
 }
