@@ -6,36 +6,51 @@ using UnityEngine;
 
 public abstract class ToneUtil : IDisposable
 {
+    //  Configuration Parameters 
     public readonly int sampleRate;
-
     public readonly int bufferSubunitSize;
 
+    //  Buffers 
     [NativeDisableParallelForRestriction]
     protected NativeArray<float> mainBuffer;
     protected NativeArray<float> whiteBuffer;
 
-    public volatile bool isSafe = true;
+    //  Chord Generators 
     protected readonly ChordGenerator MajorChord;
     protected readonly ChordGenerator MinorChord;
 
+    //  Jobs and Randoms 
+    protected NativeArray<JobHandle> jobs;
     public NativeArray<Unity.Mathematics.Random> randoms;
 
-    protected ToneUtil(int bufferSubunitRatio, int NumberOfBufferSubunits, ChordGenerator major, ChordGenerator minor)
+    //  Constructor 
+    protected ToneUtil(int bufferSubunitRatio, int numberOfBufferSubunits, ChordGenerator major, ChordGenerator minor)
     {
+        // 1. Audio configuration
         sampleRate = AudioSettings.outputSampleRate;
-
         AudioSettings.GetDSPBufferSize(out int dspBufferSize, out _);
-        bufferSubunitSize = (int)((sampleRate * 0.1f + dspBufferSize - 1) / dspBufferSize) * dspBufferSize * bufferSubunitRatio;
+        bufferSubunitSize = (int)((sampleRate * 0.1f + dspBufferSize - 1) / dspBufferSize)
+                          * dspBufferSize * bufferSubunitRatio;
 
-        mainBuffer = new(bufferSubunitSize * NumberOfBufferSubunits, Allocator.Persistent, NativeArrayOptions.ClearMemory);
-        whiteBuffer = new NativeArray<float>(mainBuffer, Allocator.Persistent);
+        int totalBufferSize = bufferSubunitSize * numberOfBufferSubunits;
 
+        // 2. Buffer allocation
+        mainBuffer = new NativeArray<float>(totalBufferSize, Allocator.Persistent, NativeArrayOptions.ClearMemory);
+        whiteBuffer = new NativeArray<float>(mainBuffer, Allocator.Persistent); // aliasing
+
+        // 3. Job handle array
+        jobs = new NativeArray<JobHandle>(3, Allocator.Persistent, NativeArrayOptions.ClearMemory);
+
+        // 4. Chord generators
         MajorChord = major;
         MinorChord = minor;
 
-        randoms = new NativeArray<Unity.Mathematics.Random>(bufferSubunitSize * NumberOfBufferSubunits, Allocator.Persistent);
+        // 5. Randoms initialization
+        randoms = new NativeArray<Unity.Mathematics.Random>(totalBufferSize, Allocator.Persistent);
         Unity.Mathematics.Random seeder = new(1);
-        for (int i = 0; i < 7 * bufferSubunitSize; i++) randoms[i] = new Unity.Mathematics.Random(seeder.NextUInt() + 1);
+        for (int i = 0; i < totalBufferSize; i++)
+            randoms[i] = new Unity.Mathematics.Random(seeder.NextUInt() + 1);
+        
     }
 
     public JobHandle RefreshWhiteBuffer()
@@ -48,13 +63,14 @@ public abstract class ToneUtil : IDisposable
         }.Schedule(whiteBuffer.Length, 64);
     }
 
-    public abstract void RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize);
+    public abstract JobHandle RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize);
 
     public virtual void Dispose()
     {
         mainBuffer.Dispose();
         whiteBuffer.Dispose();
         randoms.Dispose();
+        jobs.Dispose();
     }
 
     public NativeArray<float> MainBuffer => mainBuffer;
@@ -66,7 +82,7 @@ public class DisjointNoteTermination : ToneUtil
     public DisjointNoteTermination(int bufferSubunitRatio, ChordGenerator major, ChordGenerator minor) :
         base(bufferSubunitRatio, 5, major, minor) { }
 
-    public override void RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize)
+    public override JobHandle RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize)
     {
         
         double[] notes = isMajor ? MajorChord(freq) : MinorChord(freq);
@@ -79,10 +95,8 @@ public class DisjointNoteTermination : ToneUtil
         };
 
         NativeArray<float>[] constituentBuffers = new NativeArray<float>[3];
-        JobHandle[] Jobs = new JobHandle[3];
         JobHandle previous = default;
 
-        isSafe = false;
         for (int i = 0; i < mainBuffer.Length; i++) mainBuffer[i] = 0f;
         for (int i = 0; i < 3; i++)
         {
@@ -101,11 +115,10 @@ public class DisjointNoteTermination : ToneUtil
                 previous
             ));
             previous = mergeJob;
-            Jobs[i] = constituentBuffers[i].Dispose(mergeJob);
+            jobs[i] = constituentBuffers[i].Dispose(mergeJob);
 
         }
-        foreach (JobHandle job in Jobs) job.Complete();
-        isSafe = true;
+        return JobHandle.CombineDependencies(jobs);
     }
 }
 
@@ -118,25 +131,21 @@ public class SequentialSingleTone : ToneUtil
         for (int i = 0; i < 7 * bufferSubunitSize; i++) randoms[i] = new Unity.Mathematics.Random(seeder.NextUInt()+1);
     }
 
-    public override void RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize)
+    public override JobHandle RefreshBuffer(float freq, bool isMajor, Vector3Int gapSize)
     {
         double[] notes = isMajor ? MajorChord(freq) : MinorChord(freq);
 
         int constituentBufferSize = bufferSubunitSize;
 
         int[] selection = new int[] { gapSize.x, gapSize.y, gapSize.z };
-        JobHandle[] Jobs = new JobHandle[3];
 
-        isSafe = false;
         JobHandle whiteHandle = RefreshWhiteBuffer();
         for (int i = 0; i < mainBuffer.Length; i++) mainBuffer[i] = 0f;
-        
-
         for (int i = 0; i < 3; i++)
         {
             var constituentarray = mainBuffer.GetSubArray(i * constituentBufferSize, constituentBufferSize);
             NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref constituentarray, AtomicSafetyHandle.Create());
-            Jobs[i] = new GenerateToneJob
+            jobs[i] = new GenerateToneJob
             {
                 frequency = notes[selection[i]],
                 sampleRate = sampleRate,
@@ -144,13 +153,6 @@ public class SequentialSingleTone : ToneUtil
             }.Schedule(constituentBufferSize, 64);
         }
 
-        foreach (JobHandle job in Jobs) job.Complete();
-        whiteHandle.Complete();
-        isSafe = true;
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
+        return JobHandle.CombineDependencies(JobHandle.CombineDependencies(jobs), whiteHandle);
     }
 }

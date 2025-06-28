@@ -22,16 +22,21 @@ public class Broadcast : MonoBehaviour
     [SerializeField] private int gameMode = 0;                        // Editor handle to configure the toneUtil
     private ToneUtil toneUtil;                                        // Active tone generator instance
 
-    // Mic Configuration
-
-    private NativeArray<float> leftChannel;
-    private NativeArray<float> rightChannel;
+    // -----------------------------------------------------------------------------
+    // MIC CONFIGURATION
+    // -----------------------------------------------------------------------------
+    private NativeArray<float>[] leftChannel;
+    private NativeArray<float>[] rightChannel;
+    private volatile bool validArrayIndex = false;
     [SerializeField] float2 earDistance = new(0.5f,0);
     [SerializeField] private int sampleRate;
     [SerializeField] private float centreAttenuationFactor = 1;
     [SerializeField] private float tiltSensitivity = 0.01f;
-    private bool binauralSafe = true;
+    private JobHandle mainBufferRefreshHandle = default;
+    private JobHandle binauralBufferRefreshHandle = default;
     [SerializeField] private SpatializationParams sparams;
+    private NativeReference<SpatializationParams> sparamsRef;
+    public int counters = 0;
 
     // -----------------------------------------------------------------------------
     // GAMEPLAY STATE FIELDS
@@ -55,7 +60,7 @@ public class Broadcast : MonoBehaviour
     [SerializeField] private TextMeshProUGUI statusText;              // Score display text UI
 
 
-    private void Awake(){
+    private void Awake() {
         toneUtil = gameMode switch
         {
             0 => new SequentialSingleTone(bufferSubunitRatio, Chord.ExtendedConsonantHarmonics, Chord.Silence),
@@ -71,10 +76,20 @@ public class Broadcast : MonoBehaviour
         if (inputManager == null) inputManager = GameObject.Find("TrackingInputManager");
         if (inputManager == null) throw new MissingReferenceException("Cannot find required tracking input manager");
         inputs = inputManager.GetComponent<TrackingInputInterface>();
-        leftChannel = new NativeArray<float>(toneUtil.MainBuffer, Allocator.Persistent);
-        rightChannel = new NativeArray<float>(toneUtil.MainBuffer, Allocator.Persistent);
 
+        leftChannel = new NativeArray<float>[2]
+        {
+            new(toneUtil.MainBuffer, Allocator.Persistent),
+            new(toneUtil.MainBuffer, Allocator.Persistent)
+        };
 
+        rightChannel = new NativeArray<float>[2]
+        {
+            new(toneUtil.MainBuffer, Allocator.Persistent),
+            new(toneUtil.MainBuffer, Allocator.Persistent)
+        };
+
+        sparamsRef = new(sparams, Allocator.Persistent);
         sampleRate = toneUtil.sampleRate;
 
         if (statusText == null)
@@ -116,44 +131,65 @@ public class Broadcast : MonoBehaviour
             }
             
             Vector3Int silenceDuration = isMajor ? distances : Vector3Int.zero;
-            toneUtil.RefreshBuffer(baseFreq, isMajor, silenceDuration);
+            binauralBufferRefreshHandle.Complete();
+            mainBufferRefreshHandle.Complete();
+            mainBufferRefreshHandle = toneUtil.RefreshBuffer(baseFreq, isMajor, silenceDuration);
         }
-        float2 whitePosition = new(
-                math.tanh(inputs.ClockwiseMoment * tiltSensitivity),
-                0.0f
-            );
-        while (!toneUtil.isSafe);
-        binauralSafe = false;
-        leftChannel.AsSpan().Clear();  // In Unity 2022.2+
-        rightChannel.AsSpan().Clear();
-        sparams = new(
-            earDistance,
-            whitePosition,
-            343.0f,
-            toneUtil.sampleRate,
-            centreAttenuationFactor
-        );
-        new SpatializeAddJob
+        if (binauralBufferRefreshHandle.IsCompleted)
         {
-            input = toneUtil.WhiteBuffer,
-            shiftL = sparams.shiftL,
-            shiftR = sparams.shiftR,
-            gainL = sparams.gainL,
-            gainR = sparams.gainR,
-            centerGain = sparams.centerGain,
-            outputLeft = leftChannel,
-            outputRight = rightChannel,
-        }.Schedule(toneUtil.WhiteBuffer.Length, 64).Complete();
-        binauralSafe = true;
+            binauralBufferRefreshHandle.Complete();
+            int writableIndex = validArrayIndex? 1 : 0;
+            validArrayIndex = !validArrayIndex;
+            leftChannel[writableIndex].AsSpan().Clear();
+            rightChannel[writableIndex].AsSpan().Clear();
+            sparams = sparamsRef.Value;
+            binauralBufferRefreshHandle = new SpatializeAddJob
+            {
+                input = toneUtil.MainBuffer,
+                shiftL = 0,
+                shiftR = 0,
+                gainL = 1,
+                gainR = 1,
+                centerGain = 1,
+                outputLeft = leftChannel[writableIndex],
+                outputRight = rightChannel[writableIndex],
+            }.Schedule(toneUtil.MainBuffer.Length, 64,
+                new SpatializeAddJob
+            {
+                input = toneUtil.WhiteBuffer,
+                shiftL = sparamsRef.Value.shiftL,
+                shiftR = sparamsRef.Value.shiftR,
+                gainL = sparamsRef.Value.gainL,
+                gainR = sparamsRef.Value.gainR,
+                centerGain = sparamsRef.Value.centerGain,
+                outputLeft = leftChannel[writableIndex],
+                outputRight = rightChannel[writableIndex],
+            }.Schedule(toneUtil.WhiteBuffer.Length, 64, JobHandle.CombineDependencies(
+                new CreateSpatialisationParamsJob
+                {
+                    rightEar = earDistance,
+                    source = new(
+                        math.tanh(inputs.ClockwiseMoment * tiltSensitivity),
+                        0.0f
+                    ),
+                    speedOfSound = 343.0f,
+                    sampleRate = toneUtil.sampleRate,
+                    centreAttenuationFactor = centreAttenuationFactor,
+                    Params = sparamsRef
+                }.Schedule(),
+                mainBufferRefreshHandle
+                )
+            ));
+        }
     }
 
     private void OnAudioFilterRead(float[] data, int channels)
     {
         for (int i = 0; i < data.Length; i += channels)
         {
-            float sampleL = binauralSafe ? leftChannel[read] : 0f;
-            float sampleR = binauralSafe ? rightChannel[read] : 0f;
-            float mainSample = toneUtil.isSafe ? toneUtil.MainBuffer[read] : 0f;
+
+            float sampleL = leftChannel[validArrayIndex? 1 : 0][read];
+            float sampleR = rightChannel[validArrayIndex? 1 : 0][read];
             switch (channels)
             {
                 case 1:
@@ -177,9 +213,9 @@ public class Broadcast : MonoBehaviour
 
             read++;
 
-            if (read >= leftChannel.Length || read >= rightChannel.Length)
+            if (read >= leftChannel[validArrayIndex ? 1 : 0].Length || read >= rightChannel[validArrayIndex ? 1 : 0].Length)
             {
-                read %= math.min(leftChannel.Length, rightChannel.Length);
+                read %= math.min(leftChannel[validArrayIndex ? 1 : 0].Length, rightChannel[validArrayIndex ? 1 : 0].Length);
                 requestingUpdate = true;
             }
         }
@@ -187,8 +223,11 @@ public class Broadcast : MonoBehaviour
 
     private void OnDestroy()
     {
+        binauralBufferRefreshHandle.Complete();
+        mainBufferRefreshHandle.Complete();
         toneUtil.Dispose();
-        leftChannel.Dispose(); 
-        rightChannel.Dispose();
+        foreach(NativeArray<float> arr in leftChannel) arr.Dispose();
+        foreach(NativeArray<float> arr in rightChannel) arr.Dispose();
+        sparamsRef.Dispose();
     }
 }

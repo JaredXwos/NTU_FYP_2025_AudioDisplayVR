@@ -6,8 +6,8 @@ using UnityEngine;
 [BurstCompile]
 public struct GenerateToneJob : IJobParallelFor
 {
-    public double frequency;
-    public float sampleRate;
+    [ReadOnly] public double frequency;
+    [ReadOnly] public float sampleRate;
 
     [NativeDisableParallelForRestriction]
     public NativeArray<float> samples;

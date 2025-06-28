@@ -1,8 +1,6 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
-using Unity.Mathematics;
-
 [BurstCompile]
 public struct SpatializeAddJob : IJobParallelFor
 {
@@ -18,7 +16,7 @@ public struct SpatializeAddJob : IJobParallelFor
 
     public void Execute(int index)
     {
-        outputLeft[index] = (shiftL > index) ? 0 : input[index - shiftL] * gainL * centerGain;
-        outputRight[index] = (shiftR > index) ? 0 : input[index - shiftR] * gainR * centerGain;
+        outputLeft[index] += (shiftL > index) ? 0 : input[index - shiftL] * gainL * centerGain * 0.5f;
+        outputRight[index] += (shiftR > index) ? 0 : input[index - shiftR] * gainR * centerGain * 0.5f;
     }
 }
