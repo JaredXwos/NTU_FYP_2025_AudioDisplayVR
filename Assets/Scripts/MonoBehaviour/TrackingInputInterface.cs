@@ -75,7 +75,7 @@ public class TrackingInputInterface : MonoBehaviour
 
     protected virtual void BackgroundUpdate()
     {
-        int _lastYawZone = 0;
+        int _lastRollZone = 0;
         while (!token.IsCancellationRequested)
         {
             // Assign clockwise moment from the roll of the left hand, with 0 roll being palm down.
@@ -91,23 +91,25 @@ public class TrackingInputInterface : MonoBehaviour
             if (!rightHandExists) continue;
 
             // Assign piece orientation from vertical pitch gestures
-            int currentYawZone;
+            // Split into roll zones
+            int currentRollZone;
             lock (inputLock)
-            currentYawZone = Vector3.SignedAngle(
-                Vector3.left,
-                rightPalmNormalNormalised,
-                Vector3.up
-            ) switch
-            {
-                <= -60f => +1,
-                >= 60f => -1,
-                _ => 0
-            };
+                currentRollZone = Vector3.SignedAngle(
+                    Vector3.left,
+                    rightPalmNormalNormalised,
+                    Vector3.forward // roll is around the hand's forward direction
+                ) switch
+                {
+                    <= -50f => +1, // rolled counter-clockwise past -50°
+                    >= +50f => -1, // rolled clockwise past +50°
+                    _ => 0
+                };
 
-            if (_lastYawZone == 0 && currentYawZone != 0)
-                lock(outputLock) _pieceOrientation += currentYawZone;
+            // Increment piece orientation on crossing thresholds
+            if (_lastRollZone == 0 && currentRollZone != 0)
+                lock (outputLock) _pieceOrientation += currentRollZone;
 
-            _lastYawZone = currentYawZone;
+            _lastRollZone = currentRollZone;
 
 
             // Apply scaling and displacement
