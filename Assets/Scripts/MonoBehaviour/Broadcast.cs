@@ -57,7 +57,7 @@ public class Broadcast : MonoBehaviour
     // -----------------------------------------------------------------------------
     // UI + SCENE INTEGRATION FIELDS
     // -----------------------------------------------------------------------------
-    [SerializeField] private TextMeshProUGUI statusText;              // Score display text UI
+    [SerializeField] private TextMeshProUGUI statusText = default;              // Score display text UI
 
 
     private void Awake() {
