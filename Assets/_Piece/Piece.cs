@@ -19,20 +19,22 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
     [SerializeField, ReadOnly] private GameObject[] collisions;
     [SerializeField, ReadOnly] private int[] bottomHeights;
 
-    private readonly Transform[] stackTransforms = new Transform[3];
-    private readonly Renderer[] stackRenderers = new Renderer[3];
+    protected readonly Transform[] stackTransforms = new Transform[3];
+    protected readonly Renderer[] stackRenderers = new Renderer[3];
 
-    private (int x, int z, int bottom)[] PieceBottom =>
+    protected (int x, int z, int bottom)[] PieceBottom =>
     stackTransforms
         .Select(t => (
             x: (int)(piecePosition.Value.x + t.localPosition.x),
             z: (int)(piecePosition.Value.z + t.localPosition.z),
             bottom: (int)(piecePosition.Value.y - t.localScale.y)
         ))
+        .OrderBy(e => e.x)
+        .ThenBy(e => e.z)
         .ToArray();
 
     #region MonoBehavior
-    private void Awake()
+    protected virtual void Awake()
     {
         InterfaceRegistry<IPieceCollidable>.Register(this);
         piecePosition.Value = transform.position;
@@ -55,7 +57,7 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
 
         ResetHeights();
     }
-    private void Update()
+    protected virtual void Update()
     {
         bottomHeights = PieceBottom.Select(t => t.bottom).ToArray();
         collisions = InterfaceRegistry<IPieceCollidable>.All

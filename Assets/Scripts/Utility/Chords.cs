@@ -1,5 +1,5 @@
 public delegate double[] ChordGenerator(double frequency);
-public static class Chord
+public static class Chord_
 {
     // -------------------------------------------------------------------------
     // BASE CHORDS

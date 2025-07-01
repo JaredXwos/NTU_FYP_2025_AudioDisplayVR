@@ -63,9 +63,9 @@ public class Broadcast : MonoBehaviour
     private void Awake() {
         toneUtil = gameMode switch
         {
-            0 => new SequentialSingleTone(bufferSubunitRatio, Chord.ExtendedConsonantHarmonics, Chord.Silence),
-            1 => new DisjointNoteTermination(bufferSubunitRatio, Chord.SameNoteOver3Octaves, Chord.Silence),
-            _ => new DisjointNoteTermination(bufferSubunitRatio, Chord.Silence, Chord.Silence),
+            0 => new SequentialSingleTone(bufferSubunitRatio, Chord_.ExtendedConsonantHarmonics, Chord_.Silence),
+            1 => new DisjointNoteTermination(bufferSubunitRatio, Chord_.SameNoteOver3Octaves, Chord_.Silence),
+            _ => new DisjointNoteTermination(bufferSubunitRatio, Chord_.Silence, Chord_.Silence),
         };
         raycasters = GetComponentsInChildren<Raycaster>();
         if (raycasters.Length != 3) throw new InvalidOperationException("Invalid number of stacks found. Requires 3.");
