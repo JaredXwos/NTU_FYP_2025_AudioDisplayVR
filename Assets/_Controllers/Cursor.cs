@@ -9,11 +9,12 @@ public class Cursor : MonoBehaviour
     [Header("Grabbing")]
     [SerializeField] private float grabRadius;
     [SerializeField, ReadOnly] private int grabCount = 0;
-    private readonly Dictionary<IGrabbable, (int, Vector3)> grabbed = new();
     [SerializeField] private bool grabEnabled;
 
     [Header("Input Interface")]
     [SerializeField] private InputInterface input;
+
+    private readonly Dictionary<IGrabbable, (int, Vector3)> grabbed = new();
 
     private void Awake()
     {

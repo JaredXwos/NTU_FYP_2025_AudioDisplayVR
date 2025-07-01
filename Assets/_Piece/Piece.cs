@@ -13,11 +13,11 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
     [SerializeField] private Volatile<int> pieceOrientation = new(0);
 
     [Header("Collision Information")]
+    [SerializeField] private bool pieceCollisionEnabled = true;
     [Tooltip("Legality of target transform. Actual transform defaults to last legal transform.")]
     [SerializeField] private volatile bool illegal;
     [SerializeField, ReadOnly] private GameObject[] collisions;
     [SerializeField, ReadOnly] private int[] bottomHeights;
-    [SerializeField] private bool pieceCollisionEnabled = true;
 
     private readonly Transform[] stackTransforms = new Transform[3];
     private readonly Renderer[] stackRenderers = new Renderer[3];
