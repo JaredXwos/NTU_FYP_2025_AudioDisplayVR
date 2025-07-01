@@ -20,6 +20,8 @@ public class TrackingInputInterface : MonoBehaviour
 
     // INTERFACE OUTPUT DATA
     // -----------------------------------------------------------------------------
+    [Header("Interface Output Data")]
+
     [SerializeField] protected float _clockwiseMoment = 0.0f;
     [SerializeField] protected int _pieceOrientation = 0;
     [SerializeField] protected Vector3 _piecePosition = Vector3.zero;
@@ -28,7 +30,12 @@ public class TrackingInputInterface : MonoBehaviour
 
     // OUTPUT AND CONTROL PARAMETERS
     // -----------------------------------------------------------------------------
+    [Header("Interface Callibration Controls")]
+
+    [Tooltip("Ratio between 1 unit of length in the real world vs 1 unit of length in the game world")]
     [SerializeField] protected Vector3 scalingFactor = new(40f, 30f, 30f);
+
+    [Tooltip("Where position origin is with respect to the game world")]
     [SerializeField] protected Vector3 initialDisplacement = new(0f, -5f, 5f);
 
     // LEAP MOTION SDK AND ASYNC CONTROL

@@ -1,37 +1,41 @@
 using System.Linq;
+using Unity.Collections;
 using UnityEngine;
 
-public class Piece : MonoBehaviour, ICanCollideWithPiece
+public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
 {
     [Header("Stack Configuration")]
     [SerializeField] private int maxGeneratedHeight = 3;
     [SerializeField] private int minGeneratedHeight = 1;
 
     [Header("Target Transform")]
-    [SerializeField] private Vector3 piecePosition = Vector3.zero;
-    [SerializeField] private int pieceOrientation = 0;
+    [SerializeField] private Volatile<Vector3> piecePosition = new(Vector3.zero);
+    [SerializeField] private Volatile<int> pieceOrientation = new(0);
 
     [Header("Collision Information")]
     [Tooltip("Legality of target transform. Actual transform defaults to last legal transform.")]
-    [SerializeField] private bool illegal;
+    [SerializeField] private volatile bool illegal;
+    [SerializeField, ReadOnly] private GameObject[] collisions;
+    [SerializeField, ReadOnly] private int[] bottomHeights;
     [SerializeField] private bool pieceCollisionEnabled = true;
 
     private readonly Transform[] stackTransforms = new Transform[3];
     private readonly Renderer[] stackRenderers = new Renderer[3];
-    private readonly object transformLock = new();
 
-    private (int x, int z, int bottom)[] PieceBottom => 
-        stackTransforms
-            .Select(t => (
-                x:      (int) t.position.x,
-                z:      (int) t.position.z,
-                bottom: (int) (t.position.y - t.localScale.y)
-            ))
-            .ToArray();
+    private (int x, int z, int bottom)[] PieceBottom =>
+    stackTransforms
+        .Select(t => (
+            x: (int)(piecePosition.Value.x + t.localPosition.x),
+            z: (int)(piecePosition.Value.z + t.localPosition.z),
+            bottom: (int)(piecePosition.Value.y - t.localScale.y)
+        ))
+        .ToArray();
 
+    #region MonoBehavior
     private void Awake()
     {
-        InterfaceRegistry<ICanCollideWithPiece>.Register(this);
+        InterfaceRegistry<IPieceCollidable>.Register(this);
+        piecePosition.Value = transform.position;
 
         for (int i = 0; i < 3; i++)
         {
@@ -51,20 +55,23 @@ public class Piece : MonoBehaviour, ICanCollideWithPiece
 
         ResetHeights();
     }
-
     private void Update()
     {
-        illegal = InterfaceRegistry<ICanCollideWithPiece>.All.Any(t => t.CollidedWithPiece(PieceBottom));
+        bottomHeights = PieceBottom.Select(t => t.bottom).ToArray();
+        collisions = InterfaceRegistry<IPieceCollidable>.All
+            .Where(t => (Object)t != this && t.IsCollidedWithPiece(PieceBottom))
+            .Select(t => ((MonoBehaviour)t).gameObject)
+            .ToArray();
+        illegal = collisions.Any();
         if (illegal) return;
 
-        lock (transformLock)
-        {
-            transform.eulerAngles = new(0f, (pieceOrientation * 90) % 360, 0f);
-            transform.position = piecePosition;
-        }
+        transform.eulerAngles = new(0f, (pieceOrientation.Value * 90) % 360, 0f);
+        transform.position = piecePosition.Value;
     }
+    #endregion
 
-    public bool CollidedWithPiece((int x, int z, int bottom)[] pieceBottoms) =>
+    #region IPieceCollidable
+    public bool IsCollidedWithPiece((int x, int z, int bottom)[] pieceBottoms) =>
         stackTransforms.Any(t => t.localScale.y > 0) && pieceCollisionEnabled &&
         pieceBottoms.Any(collider => PieceBottom.Any(collidee =>
             collider.x == collidee.x && collider.z == collidee.z &&
@@ -72,6 +79,18 @@ public class Piece : MonoBehaviour, ICanCollideWithPiece
         ));
 
     public void SetPieceCollisionEnabled(bool isEnabled) => pieceCollisionEnabled = isEnabled;
+    #endregion
+
+    #region IGrabbable
+    public void SetTransform(Vector3? position, int? orientation)
+    {
+        if (position.HasValue) piecePosition.Value = position.Value;
+        if (orientation.HasValue) pieceOrientation.Value = orientation.Value;
+    }
+    public bool CanBeMoved { get; private set; }
+    public int Orientation => pieceOrientation.Value;
+    public Vector3 Position => piecePosition.Value;
+    #endregion IGrabbable
 
     public void ResetHeights()
     {
@@ -80,14 +99,6 @@ public class Piece : MonoBehaviour, ICanCollideWithPiece
             int stackHeight = Random.Range(minGeneratedHeight, maxGeneratedHeight + 1);
             t.localScale =      new Vector3(1,                  stackHeight,        1                );
             t.localPosition =   new Vector3(t.localPosition.x, -stackHeight / 2f,   t.localPosition.z);
-        }
-    }
-    public void SetPieceTransform(Vector3? position, int? orientation)
-    {
-        lock (transformLock)
-        {
-            if (position.HasValue) piecePosition = position.Value;
-            if (orientation.HasValue) pieceOrientation = orientation.Value;
         }
     }
 }
