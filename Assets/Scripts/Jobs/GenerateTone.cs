@@ -14,7 +14,6 @@ public struct GenerateToneJob : IJobParallelFor
 
     public void Execute(int i)
     {
-        float t = i / sampleRate;
-        samples[i] = Mathf.Sin((float)(2f * Mathf.PI * frequency * t));
+        samples[i] = Mathf.Sin((float)(2f * Mathf.PI * frequency * i / sampleRate));
     }
 }
