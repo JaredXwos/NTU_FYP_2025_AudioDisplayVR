@@ -40,12 +40,14 @@ public class TerrainChunk : MonoBehaviour, IPieceCollidable
     #endregion
 
     #region IPieceCollidable
-    public bool IsCollidedWithPiece((int x, int z, int bottom)[] pieceBottoms) =>
-    terrainData != null && pieceCollisionEnabled &&
-    pieceBottoms.Any(stack =>
-        stack.bottom <
-            terrainData.GetHeightAt(stack.x, stack.z)
-    );
+    public bool IsCollidedWithPiece((int x, int z, int bottom)[] pieceBottoms){
+        return terrainData != null && pieceCollisionEnabled &&
+        pieceBottoms.Any(stack =>
+            stack.bottom <
+                terrainData.GetHeightAt(stack.x, stack.z)
+        );
+    }
+    
     public void SetPieceCollisionEnabled(bool isEnabled) => pieceCollisionEnabled = isEnabled;
     #endregion
 }

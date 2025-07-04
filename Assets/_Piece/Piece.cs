@@ -1,8 +1,11 @@
 using System.Linq;
+using System.Reflection;
 using Unity.Collections;
 using UnityEngine;
 
-public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
+public interface IRequirePieceInfo { }
+
+public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHandlePieceFitEvent
 {
     [Header("Stack Configuration")]
     [SerializeField] private int maxGeneratedHeight = 3;
@@ -24,13 +27,16 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
 
     protected (int x, int z, int bottom)[] PieceBottom =>
     stackTransforms
-        .Select(t => (
-            x: (int)(piecePosition.Value.x + t.localPosition.x),
-            z: (int)(piecePosition.Value.z + t.localPosition.z),
-            bottom: (int)(piecePosition.Value.y - t.localScale.y)
-        ))
+        .Select(t => {
+            Vector3 p = transform.TransformPoint(t.localPosition) + piecePosition.Value - transform.position;
+            return (
+                x: (int) p.x,
+                z: (int) p.z,
+                bottom: (int)(p.y - t.localScale.y) + 1
+            );
+        })
         .OrderBy(e => e.x)
-        .ThenBy(e => e.z)
+        .ThenBy(e => e.z)   
         .ToArray();
 
     #region MonoBehavior
@@ -54,7 +60,7 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
             stackTransforms[i] = cube.transform;
             stackRenderers[i] = cube.GetComponent<Renderer>();
         }
-
+        LinkComponents();
         ResetHeights();
     }
     protected virtual void Update()
@@ -94,6 +100,14 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
     public Vector3 Position => piecePosition.Value;
     #endregion IGrabbable
 
+    #region IHandlePieceFitEvent
+    public void HandleEvent(Piece piece)
+    {
+        if (piece != this) return;
+        ResetHeights();
+    }
+    #endregion
+
     public void ResetHeights()
     {
         foreach(Transform t in transform)
@@ -103,4 +117,19 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable
             t.localPosition =   new Vector3(t.localPosition.x, -stackHeight / 2f,   t.localPosition.z);
         }
     }
+
+    public void LinkComponents()
+    {
+        
+        foreach(IRequirePieceInfo component in GetComponents<IRequirePieceInfo>())
+        foreach(PropertyInfo prop in component.GetType().GetProperties().Where(prop => prop.CanWrite))
+        {
+            if(prop.Name == "PieceBottom"       && prop.PropertyType == typeof(System.Func<(int, int, int)[]>))
+                prop.SetValue(component, (System.Func<(int x, int z, int bottom)[]>)  (() => PieceBottom));
+            if (prop.Name == "StackTransforms"  && prop.PropertyType == typeof(System.Func<Transform[]>))
+                prop.SetValue(component, (System.Func<Transform[]>)        (() => stackTransforms));
+        }
+        
+    }
+
 }

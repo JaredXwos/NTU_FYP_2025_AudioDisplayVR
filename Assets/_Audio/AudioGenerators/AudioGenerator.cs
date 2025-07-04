@@ -45,11 +45,13 @@ public abstract class AudioGenerator : MonoBehaviour
     protected virtual void Awake()
     {
         sampleRate = AudioSettings.outputSampleRate;
-        bufferTotalLength = SubBufferLength * SubBufferCount;
         int framesPerCallback = AudioSettings.GetConfiguration().dspBufferSize;
 
         SubBufferLength = Mathf.CeilToInt(sampleRate * (SubBufferMinimumInterval / 1000f));
         SubBufferLength += framesPerCallback - (SubBufferLength % framesPerCallback);
+
+        bufferTotalLength = SubBufferLength * SubBufferCount;
+
         for (int i = 0; i < outputBuffers.Length; i++)
         {
             outputBuffers[i] = new NativeArray<float>[ChannelCount];

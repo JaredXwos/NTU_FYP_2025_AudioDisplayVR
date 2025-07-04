@@ -7,7 +7,7 @@ public abstract class FitCueAudioGenerator : AudioGenerator
     // -----------------------------------------------------------------------------
 
     [Tooltip("Must implement IToneInputProvider")]
-    [SerializeField] protected MonoBehaviour inputComponent;
+    [SerializeField] protected GroundSonar input;
 
     [Tooltip("Set of notes to be played when the input is valid")]
     [SerializeField] protected Chord validChord;
@@ -29,12 +29,9 @@ public abstract class FitCueAudioGenerator : AudioGenerator
 
     [SerializeField] protected float frequency = 261.626f; // C4
 
-    protected IToneInputProvider input;
-
     #region MonoBehavior
     protected override void Awake()
     {
-        input = inputComponent as IToneInputProvider;
         if (input == null)
         {
             Debug.LogWarning($"[{GetType().Name}] No valid input assigned on {gameObject.name}, disabling component.");
