@@ -1,14 +1,20 @@
+using System;
 using System.Linq;
 using UnityEngine;
 
-public interface IHandlePieceFitEvent : IHandleEvent<Piece> { }
+public class PieceFitEventHandler : Handler<(Piece piece, GameObject gameObject)>
+{
+    public PieceFitEventHandler(Action<(Piece piece, GameObject gameObject)> handler) : base(handler)
+    {
+    }
+}
 
-public class PieceFitEvent : MonoBehaviour, IRequirePieceInfo
+public class PieceFitEvent : MonoBehaviour
 {
     [SerializeField] private GroundSonar sonar;
     [SerializeField] private MonoBehaviour[] listeners;
 
-    private EventBroadcaster<IHandlePieceFitEvent, Piece> broadcaster;
+    private EventBroadcaster<IHas<PieceFitEventHandler>, (Piece piece, GameObject gameObject)> broadcaster;
 
     private void Awake()
     {
@@ -24,7 +30,11 @@ public class PieceFitEvent : MonoBehaviour, IRequirePieceInfo
 
     private void Update()
     {
-        if (sonar.GetGroundClearance().All(h => h == 0)) broadcaster.InvokeEvent(sonar.Parent);
+        if (
+            sonar.GetGroundClearance().All(h => h == 0) &&
+            Physics.Raycast(transform.position, -sonar.Parent.transform.up, out RaycastHit hit, 4)
+        )
+        broadcaster.InvokeEvent((sonar.Parent, hit.collider.gameObject));
     }
 
 }

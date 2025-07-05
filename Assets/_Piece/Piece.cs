@@ -5,15 +5,15 @@ using UnityEngine;
 
 public interface IRequirePieceInfo { }
 
-public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHandlePieceFitEvent
+public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHas<PieceFitEventHandler>
 {
     [Header("Stack Configuration")]
     [SerializeField] private int maxGeneratedHeight = 3;
     [SerializeField] private int minGeneratedHeight = 1;
+    [SerializeField] private bool heightResettable = true;
 
-    [Header("Target Transform")]
-    [SerializeField] private Volatile<Vector3> piecePosition = new(Vector3.zero);
-    [SerializeField] private Volatile<int> pieceOrientation = new(0);
+    [Header("Stack Heights")]
+    [SerializeField] private Vector3Int stackHeights = Vector3Int.zero;
 
     [Header("Collision Information")]
     [SerializeField] private bool pieceCollisionEnabled = true;
@@ -24,6 +24,9 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHandlePieceFi
 
     protected readonly Transform[] stackTransforms = new Transform[3];
     protected readonly Renderer[] stackRenderers = new Renderer[3];
+
+    private Volatile<Vector3> piecePosition = new(Vector3.zero);
+    private Volatile<int> pieceOrientation = new(0);
 
     protected (int x, int z, int bottom)[] PieceBottom =>
     stackTransforms
@@ -61,7 +64,7 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHandlePieceFi
             stackRenderers[i] = cube.GetComponent<Renderer>();
         }
         LinkComponents();
-        ResetHeights();
+        ResetHeights(stackHeights);
     }
     protected virtual void Update()
     {
@@ -101,21 +104,27 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHandlePieceFi
     #endregion IGrabbable
 
     #region IHandlePieceFitEvent
-    public void HandleEvent(Piece piece)
-    {
-        if (piece != this) return;
-        ResetHeights();
-    }
+    public PieceFitEventHandler Handler => new(
+        ((Piece piece, GameObject gameObject) payload) =>
+        {
+            if (payload.piece == this && heightResettable) ResetHeights();
+        });
     #endregion
 
-    public void ResetHeights()
+    public void ResetHeights(Vector3Int Heights = default)
     {
-        foreach(Transform t in transform)
+        int[] heights = Heights == Vector3.zero?
+            Enumerable.Range(0, 3)
+                .Select(_ => Random.Range(minGeneratedHeight, maxGeneratedHeight + 1))
+                .ToArray() :
+            new int[] {Heights.x, Heights.y, Heights.z};
+
+        for(int i = 0; i < 3; i++)
         {
-            int stackHeight = Random.Range(minGeneratedHeight, maxGeneratedHeight + 1);
-            t.localScale =      new Vector3(1,                  stackHeight,        1                );
-            t.localPosition =   new Vector3(t.localPosition.x, -stackHeight / 2f,   t.localPosition.z);
+            stackTransforms[i].localScale    = new Vector3(1, heights[i], 1);
+            stackTransforms[i].localPosition = new Vector3(stackTransforms[i].localPosition.x, -heights[i] / 2f, stackTransforms[i].localPosition.z);
         }
+        stackHeights = new Vector3Int(heights[0], heights[1], heights[2]);
     }
 
     public void LinkComponents()
@@ -131,5 +140,4 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHandlePieceFi
         }
         
     }
-
 }
