@@ -3,17 +3,18 @@ using System.Linq;
 using Unity.Collections;
 using UnityEngine;
 
-public class ScaleBalance : MonoBehaviour {
+public class ScaleBalance : MonoBehaviour, ITilt {
     [SerializeField] private float momentOfInertia = 2f;
     [SerializeField, ReadOnly] private Vector3 angularAcceleration = Vector3.zero;
     [SerializeField, ReadOnly] private Vector3 angularVelocity = Vector3.zero;
     [SerializeField, ReadOnly] private Vector3 angularDisplacement = Vector3.zero;
+    [SerializeField, ReadOnly] private GameObjectInt[] torques; 
     [SerializeField, ReadOnly] private int weightCount = 0;
     [SerializeField, ReadOnly] private Vector3 pivotOffset;
 
     private readonly Volatile<Vector3> _angularDisplacement = new(Vector3.zero);
 
-    private readonly HashSet<Weight> weightSet = new();
+    private readonly HashSet<ILoad> weightSet = new();
 
 
     #region MonoBehavior
@@ -27,12 +28,16 @@ public class ScaleBalance : MonoBehaviour {
             ).center - transform.position;
     }
 
+    private void Update() => weightSet.RemoveWhere(mb => !mb.enabled);
+
     private void FixedUpdate()
     {
+        torques = weightSet
+            .Select(weight => new GameObjectInt { gameObject = weight.gameObject, value = (int) Vector3.Cross(weight.Position - transform.position - pivotOffset, weight.Force).magnitude })
+            .ToArray();
         angularAcceleration = weightSet
-            .Select(weight => Vector3.Cross(weight.transform.position - transform.position - pivotOffset, Vector3.down * weight.weight))
+            .Select(weight => Vector3.Cross(weight.Position - transform.position - pivotOffset, weight.Force))
             .Aggregate(Vector3.zero, (sum, torque) => sum + torque) / momentOfInertia;
-
         angularVelocity += angularAcceleration * Time.fixedDeltaTime;
         angularDisplacement += 0.5f * angularAcceleration * Time.fixedDeltaTime * Time.fixedDeltaTime + angularVelocity * Time.fixedDeltaTime;
         _angularDisplacement.Value = angularDisplacement;
@@ -44,24 +49,24 @@ public class ScaleBalance : MonoBehaviour {
         _angularDisplacement.Value.normalized
     );
 
-    public void RegisterWeight(Weight weight)
+    public void RegisterWeight(ILoad weight)
     {
         weightSet.Add(weight);
         ++weightCount;
     }
-    public void RegisterWeight(IEnumerable<Weight> weights)
+    public void RegisterWeight(IEnumerable<ILoad> weights)
     {
-        foreach (Weight weight in weights) weightSet.Add(weight);
+        foreach (ILoad weight in weights) weightSet.Add(weight);
         weightCount = weightSet.Count;
     }
-    public void RemoveWeight(Weight weight)
+    public void RemoveWeight(ILoad weight)
     {
         weightSet.Remove(weight);
         --weightCount;
     }
-    public void RemoveWeight(IEnumerable<Weight> weights)
+    public void RemoveWeight(IEnumerable<ILoad> weights)
     {
-        foreach (Weight weight in weights) weightSet.Remove(weight);
+        foreach (ILoad weight in weights) weightSet.Remove(weight);
         weightCount = weightSet.Count;
     }
     public void ClearWeights()

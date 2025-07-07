@@ -23,7 +23,7 @@ public class TransferPieceWeightToScale : MonoBehaviour, IHas<PieceFitEventHandl
         {
             if(body.Contains(payload.gameObject))
             {
-                Weight[] weights = payload.piece.gameObject.GetComponents<Weight>();
+                ILoad[] weights = payload.piece.gameObject.GetComponents<ILoad>();
                 balance.RegisterWeight(weights);
             }
         });
