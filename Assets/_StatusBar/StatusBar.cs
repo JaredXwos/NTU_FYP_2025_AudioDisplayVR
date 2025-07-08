@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-public class StatusBar : MonoBehaviour, IHas<PieceFitEventHandler>
+public class StatusBar : MonoBehaviour, IHas<FitEventHandler<Piece>>
 {
     [SerializeField] private TextMeshProUGUI statusText = default;
     [SerializeField] private int score = 0;
@@ -22,14 +22,10 @@ public class StatusBar : MonoBehaviour, IHas<PieceFitEventHandler>
     #endregion
 
     #region IHandlePieceFitEvent
-    public PieceFitEventHandler Handler => new(
+    FitEventHandler<Piece> IHas<FitEventHandler<Piece>>.Handler => new(
         ((Piece piece, GameObject gameObject) _) =>
         {
             if (statusText != null) statusText.text = $"Score: {++score}";
         });
-    public void HandleEvent(Piece _)
-    {
-        if(statusText != null) statusText.text = $"Score: {++score}";
-    }
     #endregion
 }

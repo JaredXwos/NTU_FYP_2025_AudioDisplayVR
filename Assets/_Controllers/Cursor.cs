@@ -20,6 +20,7 @@ public class Cursor : MonoBehaviour
         InputInterface[] inputs = GetComponents<InputInterface>();
         input ??= inputs.FirstOrDefault(ii => ii.enabled) ?? inputs.First();
         if (!input.enabled) input.enabled = true;
+        gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
     }
 
     private void Update()

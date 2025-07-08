@@ -1,11 +1,9 @@
 using System.Linq;
-using System.Reflection;
 using Unity.Collections;
 using UnityEngine;
 
-public interface IRequirePieceInfo { }
 
-public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHas<PieceFitEventHandler>
+public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventHandler<Piece>>
 {
     [Header("Stack Configuration")]
     [SerializeField] private int maxGeneratedHeight = 3;
@@ -43,8 +41,9 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHas<PieceFitE
         .ToArray();
 
     #region MonoBehavior
-    protected virtual void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         InterfaceRegistry<IPieceCollidable>.Register(this);
         piecePosition.Value = transform.position;
 
@@ -63,7 +62,6 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHas<PieceFitE
             stackTransforms[i] = cube.transform;
             stackRenderers[i] = cube.GetComponent<Renderer>();
         }
-        LinkComponents();
         ResetHeights(stackHeights);
     }
     protected virtual void Update()
@@ -101,14 +99,6 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHas<PieceFitE
     public bool CanBeMoved { get; private set; }
     public int Orientation => pieceOrientation.Value;
     public Vector3 Position => piecePosition.Value;
-    #endregion IGrabbable
-
-    #region IHandlePieceFitEvent
-    public PieceFitEventHandler Handler => new(
-        ((Piece piece, GameObject gameObject) payload) =>
-        {
-            if (payload.piece == this && heightResettable) ResetHeights();
-        });
     #endregion
 
     public void ResetHeights(Vector3Int Heights = default)
@@ -127,17 +117,15 @@ public class Piece : MonoBehaviour, IPieceCollidable, IGrabbable, IHas<PieceFitE
         stackHeights = new Vector3Int(heights[0], heights[1], heights[2]);
     }
 
-    public void LinkComponents()
+    protected override (string name, System.Func<object> binding)[] Bindings => new (string, System.Func<object>)[]
     {
-        
-        foreach(IRequirePieceInfo component in GetComponents<IRequirePieceInfo>())
-        foreach(PropertyInfo prop in component.GetType().GetProperties().Where(prop => prop.CanWrite))
+        ("PieceBottom", (System.Func<(int, int, int)[]>) (() => PieceBottom)),
+        ("ComponentTransforms", (System.Func<Transform[]>) (() => stackTransforms))
+    };
+
+    FitEventHandler<Piece> IHas<FitEventHandler<Piece>>.Handler => new(
+        ((Piece piece, GameObject gameObject) payload) =>
         {
-            if(prop.Name == "PieceBottom"       && prop.PropertyType == typeof(System.Func<(int, int, int)[]>))
-                prop.SetValue(component, (System.Func<(int x, int z, int bottom)[]>)  (() => PieceBottom));
-            if (prop.Name == "StackTransforms"  && prop.PropertyType == typeof(System.Func<Transform[]>))
-                prop.SetValue(component, (System.Func<Transform[]>)        (() => stackTransforms));
-        }
-        
-    }
+            if (payload.piece == this && heightResettable) ResetHeights();
+        });
 }
