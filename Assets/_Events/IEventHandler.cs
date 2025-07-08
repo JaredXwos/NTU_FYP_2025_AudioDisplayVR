@@ -32,3 +32,13 @@ public class EventBroadcaster<Caller, Payload> where Caller : IHas<Handler<Paylo
             caller.Handler.Handle(payload);
     }
 }
+public abstract class EventCascade<HANDLER, Payload, Component> : MonoBehaviour, IHas<HANDLER>
+    where HANDLER : Handler<Payload>
+{
+    public HANDLER Handler => (HANDLER)Activator.CreateInstance(typeof(HANDLER), (Action<Payload>)(p => {
+        if (Condition(p)) foreach (Component component in GetComponentsInChildren<Component>()) Dispatch(component);
+    }));
+
+    protected abstract void Dispatch(Component component);
+    protected virtual bool Condition(Payload payload) => true;
+}
