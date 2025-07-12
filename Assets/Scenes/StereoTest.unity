@@ -624,7 +624,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 881d5b6edf064284688c5cd5ddd421a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  momentOfInertia: 500
+  momentOfInertia: 50
   angularAcceleration: {x: 0, y: 0, z: 0}
   angularVelocity: {x: 0, y: 0, z: 0}
   angularDisplacement: {x: 0, y: 0, z: 0}
@@ -643,12 +643,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae418332c2711f74fb7e376aed33141d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  weightPerUnitCubeFluid: 1
+  weightPerUnitCubeFluid: 0.5
   gravity: 9.81
   radius: 0
   origin: {x: 0, y: 0, z: 0}
   CentreOfBuoyancy: {x: 0, y: 0, z: 0}
   BuoyantForceMagnitude: 0
+  MaximalApplicableTorque: 0
 --- !u!114 &1139331767
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1146,7 +1147,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b984a442343b9e4e920f3841997865f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Weight: 10
+  Weight: 100
   TotalStage: 1
   CurrentStage: 0
 --- !u!114 &2030377279

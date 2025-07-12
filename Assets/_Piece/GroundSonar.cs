@@ -32,7 +32,6 @@ public class GroundSonar : Dispatch
     {
         base.Start();
         ComponentTransforms = GetComponentsInChildren<Transform>().Where(t => t.gameObject.GetComponent<Collider>() != null);
-        Debug.Log($"Component Parts: {ComponentTransforms.Count()}");
     }
 
     protected void Update()

@@ -19,12 +19,13 @@ using static UnityEngine.EventSystems.EventTrigger;
 [RequireComponent(typeof(ScaleBalance))]
 public class Bouyancy : MonoBehaviour, ILoad
 {
-    [SerializeField] private float weightPerUnitCubeFluid = 1000f;
+    [SerializeField] private float weightPerUnitCubeFluid;
     [SerializeField] private float gravity = 9.81f;
     [SerializeField, ReadOnly] private float radius;
     [SerializeField, ReadOnly] private Vector3 origin;
     [SerializeField, ReadOnly] private Vector3 CentreOfBuoyancy;
     [SerializeField, ReadOnly] private float BuoyantForceMagnitude;
+    [SerializeField, ReadOnly] private float MaximalApplicableTorque;
 
     private ScaleBalance scale;
     private readonly Volatile<float> buoyantForceMagnitude = new(0);
@@ -39,7 +40,6 @@ public class Bouyancy : MonoBehaviour, ILoad
     }
     private void Start()
     {
-        Debug.LogFormat($"Children: {transform.GetComponentsInChildren<Transform>().Length}");
         if (GetComponentsInChildren<Renderer>().Length == 0) Debug.LogWarning("No renderers found");
         IEnumerable<Bounds> bounds = GetComponentsInChildren<Renderer>()
             .Select(r => r.bounds);
@@ -50,6 +50,9 @@ public class Bouyancy : MonoBehaviour, ILoad
             );
         radius = body.extents.magnitude;
         origin = body.center;
+
+        Quaternion test = new(0.707f, 0.707f, 0, 0);
+        MaximalApplicableTorque = Vector3.Cross(CalculateCentreOfBuoyancy(test), Vector3.up * CalculateMagnitudeOfBuoyantForce(test)).magnitude / 2;
     }
     private void Update()
     {
@@ -57,17 +60,7 @@ public class Bouyancy : MonoBehaviour, ILoad
 
         centreOfBuoyancy.Value = CalculateCentreOfBuoyancy(scale.GetOrientation) + origin;
 
-        float turnAngle = angleAxisVector.magnitude % (2 * Mathf.PI);
-        angleAxisVector = angleAxisVector.normalized * turnAngle;
-        if (turnAngle > Mathf.PI)
-        {
-            turnAngle = 2 * Mathf.PI - turnAngle;
-            angleAxisVector = -angleAxisVector.normalized * turnAngle;
-        }
-        if (turnAngle <= 0) return;
-
-        if (centreOfBuoyancy.Value.z != origin.z) Debug.LogError($"[Buoyancy Error Detected] ({centreOfBuoyancy.Value.x:G9}, {centreOfBuoyancy.Value.y:G9}, {centreOfBuoyancy.Value.z:G9})");
-        buoyantForceMagnitude.Value = 2f / 3f * Mathf.PI * radius * radius * radius * turnAngle * weightPerUnitCubeFluid;
+        buoyantForceMagnitude.Value = CalculateMagnitudeOfBuoyantForce(scale.GetOrientation);
 
         CentreOfBuoyancy = centreOfBuoyancy.Value;
         BuoyantForceMagnitude = buoyantForceMagnitude.Value;
@@ -93,11 +86,18 @@ public class Bouyancy : MonoBehaviour, ILoad
         Vector3 centroidDirection
             = Quaternion.AngleAxis(halfAngle * Mathf.Rad2Deg, axis) * intersection.normalized;
 
-        float displacement = (4 * radius * Mathf.Sin(halfAngle)) / (3 * halfAngle);
+        float displacement = (4 * radius * Mathf.Sin(halfAngle)) / (3 * angleRadians);
 
         Vector3 centroid = centroidDirection * displacement;
 
         return centroid;
+    }
+
+    private float CalculateMagnitudeOfBuoyantForce(Quaternion orientation)
+    {
+        orientation.ToAngleAxis(out float angleDegrees, out Vector3 axis);
+        float angleRadians = angleDegrees * Mathf.Deg2Rad;
+        return 2f / 3f * Mathf.PI * radius * radius * radius * angleRadians * weightPerUnitCubeFluid;
     }
 
     private static string Vec3(Vector3 v)

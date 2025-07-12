@@ -55,7 +55,6 @@ public class ScaleBalance : MonoBehaviour {
         // divide by moment of inertia to get angular acceleration
         angularAcceleration /= momentOfInertia;
 
-        if (angularAcceleration.x != 0) Debug.LogError("[Scale Balance Error Detected]");
         _angularDisplacement.Value = angularDisplacement;
     }
 
