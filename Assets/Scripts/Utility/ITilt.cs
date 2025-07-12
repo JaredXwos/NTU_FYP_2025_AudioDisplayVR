@@ -2,5 +2,5 @@ using UnityEngine;
 
 public interface ITilt
 {
-    public Quaternion GetOrientation { get; }
+    public Quaternion Orientation { get; }
 }

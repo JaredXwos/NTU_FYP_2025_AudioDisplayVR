@@ -559,6 +559,7 @@ GameObject:
   - component: {fileID: 1139331765}
   - component: {fileID: 1139331764}
   - component: {fileID: 1139331766}
+  - component: {fileID: 1139331767}
   m_Layer: 0
   m_Name: Base
   m_TagString: Untagged
@@ -623,13 +624,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 881d5b6edf064284688c5cd5ddd421a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  momentOfInertia: 50
+  momentOfInertia: 500
   angularAcceleration: {x: 0, y: 0, z: 0}
   angularVelocity: {x: 0, y: 0, z: 0}
   angularDisplacement: {x: 0, y: 0, z: 0}
   torques: []
   weightCount: 0
-  pivotOffset: {x: 0, y: 0, z: 0}
+  origin: {x: 0, y: 0, z: 0}
 --- !u!114 &1139331766
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -642,10 +643,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae418332c2711f74fb7e376aed33141d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mass: 0.005
+  weightPerUnitCubeFluid: 1
+  gravity: 9.81
   radius: 0
+  origin: {x: 0, y: 0, z: 0}
   CentreOfBuoyancy: {x: 0, y: 0, z: 0}
   BuoyantForceMagnitude: 0
+--- !u!114 &1139331767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139331761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06133a17b25db6d4c958e41b1bc04921, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  scaleBalance: {fileID: 0}
 --- !u!1 &1206350287
 GameObject:
   m_ObjectHideFlags: 0
@@ -1095,6 +1111,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77bb69d09071bea45a9bdf14abcdf907, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  listeners: []
   groundClearance: ffffffffffffffffffffffff
   broadcastFitEvent: 1
 --- !u!114 &2030377276

@@ -81,6 +81,7 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
 
     #region IPieceCollidable
     public bool IsCollidedWithPiece((int x, int z, int bottom)[] pieceBottoms) =>
+        enabled &&
         stackTransforms.Any(t => t.localScale.y > 0) && pieceCollisionEnabled &&
         pieceBottoms.Any(collider => PieceBottom.Any(collidee =>
             collider.x == collidee.x && collider.z == collidee.z &&

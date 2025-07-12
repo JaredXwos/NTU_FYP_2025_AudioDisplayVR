@@ -10,47 +10,29 @@ public class FitEventHandler<collider> : Handler<(collider, GameObject)> where c
 }
 
 [RequireComponent(typeof(CoreComponent))]
-public class GroundSonar : MonoBehaviour
+public class GroundSonar : Dispatch
 {
     [SerializeField, ReadOnly] private int[] groundClearance = new int[3] {-1, -1, -1};
     [SerializeField] private bool broadcastFitEvent = true;
 
     private readonly Volatile<int[]> _groundClearance = new(new int[3]);
     public CoreComponent Parent { get; private set; }
-    private IEnumerable<Transform> ComponentTransforms;
-    private Delegate invoke;
 
-    #region MonoBehavior
-    private void Start()
+    private IEnumerable<Transform> ComponentTransforms;
+
+    protected override void Awake()
     {
         Parent = GetComponent<CoreComponent>();
+        HandlerType = typeof(FitEventHandler<>).MakeGenericType(Parent.GetType());
+        PayloadType = typeof(ValueTuple<,>).MakeGenericType(Parent.GetType(), typeof(GameObject));
+        base.Awake();
+    }
+    #region MonoBehavior
+    protected override void Start()
+    {
+        base.Start();
         ComponentTransforms = GetComponentsInChildren<Transform>().Where(t => t.gameObject.GetComponent<Collider>() != null);
         Debug.Log($"Component Parts: {ComponentTransforms.Count()}");
-        MonoBehaviour[] listeners = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
-            .Where(mb =>
-            mb.GetType().GetInterfaces().Any(iface =>
-                typeof(IHas<>).MakeGenericType(typeof(FitEventHandler<>).MakeGenericType(Parent.GetType())).IsAssignableFrom(iface)
-            ))
-            .ToArray();
-
-        object broadcast = Activator.CreateInstance(
-            typeof(EventBroadcaster<,>).MakeGenericType(
-                typeof(IHas<>).MakeGenericType(
-                    typeof(FitEventHandler<>).MakeGenericType(Parent.GetType())
-                ),
-                typeof(ValueTuple<,>).MakeGenericType(Parent.GetType(), typeof(GameObject))
-            ),
-            new object[] { listeners } // forces single array param
-        );
-        Type payloadType = typeof(ValueTuple<,>).MakeGenericType(Parent.GetType(), typeof(GameObject));
-        Type delegateType = typeof(Action<>).MakeGenericType(payloadType);
-
-        System.Reflection.MethodInfo method = broadcast.GetType().GetMethod("InvokeEvent");
-        if (method == null)
-        {   
-            Debug.LogError("[Ground Sensor] Reflection type error with broadcaster");
-        }
-        else invoke = Delegate.CreateDelegate(delegateType, broadcast, method);
     }
 
     protected void Update()
@@ -77,14 +59,12 @@ public class GroundSonar : MonoBehaviour
 
         _groundClearance.Value = (int[])groundClearance.Clone();
 
-        if (broadcastFitEvent && collided != null && groundClearance.All(h => h == 0)) 
-            invoke.DynamicInvoke(Activator.CreateInstance(
-                typeof(ValueTuple<,>).MakeGenericType(Parent.GetType(), typeof(GameObject)),
-                Parent, 
-                collided
-            ));
+        if (broadcastFitEvent && collided != null && groundClearance.All(h => h == 0)) Invoke(Activator.CreateInstance(PayloadType, new object[] {Parent, collided}));
     }
     #endregion
+    protected override Type HandlerType { get; set; }
+
+    protected override Type PayloadType { get; set; }
 
     public int[] GetGroundClearance() => _groundClearance.Value;
 }

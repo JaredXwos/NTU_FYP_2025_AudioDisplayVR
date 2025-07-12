@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using UnityEngine;
+using static UnityEngine.EventSystems.EventTrigger;
 
 /// <summary>
 /// This class calculates a bouyancy force.
@@ -18,9 +19,10 @@ using UnityEngine;
 [RequireComponent(typeof(ScaleBalance))]
 public class Bouyancy : MonoBehaviour, ILoad
 {
-
-    [SerializeField] private float mass;
+    [SerializeField] private float weightPerUnitCubeFluid = 1000f;
+    [SerializeField] private float gravity = 9.81f;
     [SerializeField, ReadOnly] private float radius;
+    [SerializeField, ReadOnly] private Vector3 origin;
     [SerializeField, ReadOnly] private Vector3 CentreOfBuoyancy;
     [SerializeField, ReadOnly] private float BuoyantForceMagnitude;
 
@@ -33,7 +35,7 @@ public class Bouyancy : MonoBehaviour, ILoad
     {
         scale = GetComponent<ScaleBalance>();
         scale.RegisterWeight(this);
-
+        
     }
     private void Start()
     {
@@ -41,40 +43,63 @@ public class Bouyancy : MonoBehaviour, ILoad
         if (GetComponentsInChildren<Renderer>().Length == 0) Debug.LogWarning("No renderers found");
         IEnumerable<Bounds> bounds = GetComponentsInChildren<Renderer>()
             .Select(r => r.bounds);
-        radius = bounds
+        Bounds body = bounds
             .Aggregate(
                 bounds.First(),
                 (overall, b) => { overall.Encapsulate(b); return overall; }
-            ).extents.magnitude;
+            );
+        radius = body.extents.magnitude;
+        origin = body.center;
     }
     private void Update()
     {
-        scale.GetOrientation.ToAngleAxis(out float angle, out Vector3 axis);
+        Vector3 angleAxisVector = scale.Orientation;
 
-        if (angle == 0f) return;
+        centreOfBuoyancy.Value = CalculateCentreOfBuoyancy(scale.GetOrientation) + origin;
 
-        float halfAngle = 0.5f * angle * Mathf.Deg2Rad;
-        Vector3 intersection = Vector3.Cross(Vector3.down, axis);
-        Vector3 centroidDirection = Quaternion.AngleAxis(halfAngle * Mathf.Rad2Deg, axis) * intersection.normalized;
+        float turnAngle = angleAxisVector.magnitude % (2 * Mathf.PI);
+        angleAxisVector = angleAxisVector.normalized * turnAngle;
+        if (turnAngle > Mathf.PI)
+        {
+            turnAngle = 2 * Mathf.PI - turnAngle;
+            angleAxisVector = -angleAxisVector.normalized * turnAngle;
+        }
+        if (turnAngle <= 0) return;
 
-        float displacement = (4 * radius * Mathf.Sin(halfAngle)) / (3 * halfAngle);
-        centreOfBuoyancy.Value = transform.position + centroidDirection * displacement;
-
-        buoyantForceMagnitude.Value = 2f / 3f * Mathf.PI * Mathf.Pow(radius, 3) * angle * mass;
+        if (centreOfBuoyancy.Value.z != origin.z) Debug.LogError($"[Buoyancy Error Detected] ({centreOfBuoyancy.Value.x:G9}, {centreOfBuoyancy.Value.y:G9}, {centreOfBuoyancy.Value.z:G9})");
+        buoyantForceMagnitude.Value = 2f / 3f * Mathf.PI * radius * radius * radius * turnAngle * weightPerUnitCubeFluid;
 
         CentreOfBuoyancy = centreOfBuoyancy.Value;
         BuoyantForceMagnitude = buoyantForceMagnitude.Value;
-    }
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawSphere(centreOfBuoyancy.Value, 0.05f);
-        Gizmos.DrawLine(centreOfBuoyancy.Value, centreOfBuoyancy.Value + Force * 0.1f);
-    }
+    }   
     #endregion
 
     #region ILoad
     public Vector3 Position => centreOfBuoyancy.Value;
     public Vector3 Force => buoyantForceMagnitude.Value * Vector3.up;
     #endregion
+
+    private Vector3 CalculateCentreOfBuoyancy(Quaternion orientation)
+    {
+        orientation.ToAngleAxis(out float angleDegrees, out Vector3 axis);
+
+        if (angleDegrees == 0f) return Vector3.zero;
+
+        float angleRadians = angleDegrees * Mathf.Deg2Rad;
+        float halfAngle = 0.5f * angleRadians;
+
+        Vector3 intersection = Vector3.Cross(Vector3.down, axis);
+
+        Vector3 centroidDirection
+            = Quaternion.AngleAxis(halfAngle * Mathf.Rad2Deg, axis) * intersection.normalized;
+
+        float displacement = (4 * radius * Mathf.Sin(halfAngle)) / (3 * halfAngle);
+
+        Vector3 centroid = centroidDirection * displacement;
+
+        return centroid;
+    }
+
+    private static string Vec3(Vector3 v)
+=> $"({v.x:R}, {v.y:R}, {v.z:R})";
 }
