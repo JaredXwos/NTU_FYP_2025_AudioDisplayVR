@@ -23,8 +23,12 @@ public class WeakeningWeight : MonoBehaviour, ILoad, IWeaken
 
     public void Weaken()
     {
+        CurrentStage++;
         weight.Value = (TotalStage - CurrentStage) * Weight;
-        if (CurrentStage == TotalStage) enabled = false;
-        if (TryGetComponent<Death>(out var death)) death.Trigger();
+        if (CurrentStage == TotalStage)
+        {
+            if (TryGetComponent<Death>(out var death)) death.Trigger();
+            enabled = false;
+        }
     }
 }

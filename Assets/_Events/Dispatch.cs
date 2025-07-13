@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using UnityEngine;
 
 public abstract class Dispatch : MonoBehaviour
@@ -26,9 +27,13 @@ public abstract class Dispatch : MonoBehaviour
         if (listeners == null || listeners.Length < 1)
         {
             Debug.Log($"[Dispatch::{GetType().Name}] No listeners found. Assuming global broadcast");
+
+            var compatibleTypes = Check.GetCompatibleTypes(typeof(IHas<>).MakeGenericType(HandlerType));
             listeners = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
-            .Where(m => typeof(IHas<>).MakeGenericType(HandlerType).IsInstanceOfType(m))
-            .ToArray();
+                .Where(m => m.GetType()
+                             .GetInterfaces()
+                             .Any(i => compatibleTypes.Contains(i)))
+                .ToArray();
             if (listeners.Length == 0)
             {
                 Debug.LogWarning($"[Dispatch::{GetType().Name}] No valid listeners found. Disabling.");
@@ -41,7 +46,8 @@ public abstract class Dispatch : MonoBehaviour
             List<MonoBehaviour> newlist = new();
             foreach(MonoBehaviour m in listeners)
             {
-                if(typeof(IHas<>).MakeGenericType(HandlerType).IsInstanceOfType(m)) newlist.Add(m);
+                HashSet<Type> compatibleTypes = Check.GetCompatibleTypes(typeof(IHas<>).MakeGenericType(HandlerType));
+                if (m.GetType().GetInterfaces().Any(i => compatibleTypes.Contains(i))) newlist.Add(m);
                 else Debug.LogWarning($"[Dispatch::{GetType().Name}] The provided listener {m.name} on {m.gameObject.name} does not have the required event handler {HandlerType.Name}.");
             }
 
@@ -57,10 +63,44 @@ public abstract class Dispatch : MonoBehaviour
         UnaryExpression parameter = Expression.Convert(argument, PayloadType);
         invokes = listeners.Select(m =>
         {
-            var handler = typeof(IHas<>).MakeGenericType(HandlerType).GetProperty("Handler").GetValue(m) ?? throw new InvalidOperationException("MonoBehaviour lacks the property Handler");
-            var handleDelegate = HandlerType.GetProperty("Handle").GetValue(handler) ?? throw new InvalidOperationException("Handler lacks the property Handle");
-            ConstantExpression delegateConst = Expression.Constant(handleDelegate);
-            InvocationExpression invokeCall = Expression.Invoke(delegateConst, parameter);
+            object handler = null;
+
+            // Try direct property on class hierarchy
+            var prop = m.GetType().GetProperty("Handler", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
+
+            if (prop != null) handler = prop.GetValue(m);
+            else
+            {
+                // Fallback: look for any IHas<...> explicit interface
+                var iface = m.GetType()
+                    .GetInterfaces()
+                    .FirstOrDefault(i =>
+                        i.IsGenericType &&
+                        i.GetGenericTypeDefinition() == typeof(IHas<>)
+                    ) ?? throw new InvalidOperationException($"{m} does not implement IHas<> or have a Handler property.");
+                handler = iface.InvokeMember(
+                    "Handler",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.GetProperty,
+                    null,
+                    m,
+                    null
+                );
+            }
+
+            if (handler == null)
+                throw new InvalidOperationException($"Handler on {m} is null.");
+
+            var handleDelegate = handler.GetType().GetProperty("Handle").GetValue(handler)
+            ?? throw new InvalidOperationException("Handler lacks the property Handle");
+
+            var delegateType = handleDelegate.GetType();
+            var invokeMethod = delegateType.GetMethod("Invoke");
+            var expectedParameterType = invokeMethod.GetParameters()[0].ParameterType;
+
+            var delegateConst = Expression.Constant(handleDelegate);
+
+            InvocationExpression invokeCall = Expression.Invoke(delegateConst, Check.BuildCompatibleNewInstance(parameter, parameter.Type, expectedParameterType));
+
             return Expression.Lambda<Action<object>>(invokeCall, argument).Compile();
         }).ToArray();
 

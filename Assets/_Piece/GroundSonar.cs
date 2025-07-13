@@ -45,20 +45,26 @@ public class GroundSonar : Dispatch
             .ToArray();
         GameObject collided = null;
         for (int i = 0; i < startPoint.Length; i++)
-            if (Physics.Raycast(startPoint[i], downward, out RaycastHit hit, 10f))
+            if (Physics.Raycast(startPoint[i], downward, out RaycastHit hit, 10f) && hit.transform.root.gameObject != gameObject)
             {
                 groundClearance[i] = Mathf.FloorToInt(hit.distance);
                 collided = hit.transform.root.gameObject;
             }
             else
             {
+                collided = null;
                 Array.Fill(groundClearance, -1);
                 break;
             }
 
         _groundClearance.Value = (int[])groundClearance.Clone();
 
-        if (broadcastFitEvent && collided != null && groundClearance.All(h => h == 0)) Invoke(Activator.CreateInstance(PayloadType, new object[] {Parent, collided}));
+        
+        if (broadcastFitEvent && collided != null && groundClearance.All(h => h == 0))
+        {
+            Debug.Log($"[Event Log] {Parent.GetType()}, {collided.GetType()}");
+            Invoke(Activator.CreateInstance(PayloadType, new object[] { Parent, collided }));
+        }
     }
     #endregion
     protected override Type HandlerType { get; set; }

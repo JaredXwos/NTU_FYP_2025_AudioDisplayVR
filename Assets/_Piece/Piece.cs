@@ -47,6 +47,7 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
         InterfaceRegistry<IPieceCollidable>.Register(this);
         piecePosition.Value = transform.position;
 
+        foreach (Transform child in transform) Destroy(child.gameObject);
         for (int i = 0; i < 3; i++)
         {
             // Create the cube primitive
@@ -77,6 +78,9 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
         transform.eulerAngles = new(0f, (pieceOrientation.Value * 90) % 360, 0f);
         transform.position = piecePosition.Value;
     }
+
+    protected virtual void OnDestroy() => InterfaceRegistry<IPieceCollidable>.Unregister(this);
+
     #endregion
 
     #region IPieceCollidable

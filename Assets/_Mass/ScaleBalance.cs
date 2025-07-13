@@ -34,6 +34,7 @@ public class ScaleBalance : MonoBehaviour {
 
     private void FixedUpdate()
     {
+        weightSet.RemoveWhere(load => (UnityEngine.Object)load == null);
         torques = weightSet
             .Select(weight => new GameObjectInt { gameObject = weight.gameObject, value = (int) Vector3.Cross(weight.Position - origin, weight.Force).magnitude })
             .ToArray();

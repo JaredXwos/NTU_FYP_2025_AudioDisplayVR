@@ -1,6 +1,7 @@
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using UnityEngine;
 
@@ -118,5 +119,117 @@ public static class Check
 
         Debug.LogError($"[Check] Could not find any {callerType.Name}");
         return false;
+    }
+
+    public static HashSet<Type> GetCompatibleTypes(Type type)
+    {
+        var compatible = new HashSet<Type>();
+
+        if (type == null || type == typeof(object))
+        {
+            compatible.Add(typeof(object));
+            return compatible;
+        }
+
+        if (type.IsGenericType)
+        {
+            // Get sets of compatible types for each generic argument
+            var argumentSets = type.GetGenericArguments()
+                .Select(arg => GetCompatibleTypes(arg))
+                .ToArray();
+
+            // Get cartesian product of these sets
+            foreach (var combo in CartesianProduct(argumentSets))
+            {
+                try
+                {
+                    var genericType = type.GetGenericTypeDefinition().MakeGenericType(combo.ToArray());
+                    compatible.Add(genericType);
+                }
+                catch
+                {
+                    // might fail on invalid generic combinations
+                }
+            }
+        }
+        else
+        {
+            compatible.Add(type);
+        }
+
+        // Also add base types recursively
+        compatible.UnionWith(GetCompatibleTypes(type.BaseType));
+
+        return compatible;
+    }
+
+    // Helper: computes cartesian product of sets
+    private static IEnumerable<IEnumerable<Type>> CartesianProduct(IEnumerable<HashSet<Type>> sequences)
+    {
+        IEnumerable<IEnumerable<Type>> result = new[] { Enumerable.Empty<Type>() };
+        foreach (var sequence in sequences)
+        {
+            result = from accseq in result
+                     from item in sequence
+                     select accseq.Concat(new[] { item });
+        }
+        return result;
+    }
+
+    public static Expression BuildCompatibleNewInstance(Expression parameter, Type sourceType, Type targetType)
+    {
+        // If they are directly the same, no rebuild needed
+        if (sourceType == targetType)
+            return parameter;
+
+        // If they are assignable directly (upcasting, interfaces)
+        if (targetType.IsAssignableFrom(sourceType))
+            return Expression.Convert(parameter, targetType);
+
+        // If target type is generic, try to rebuild recursively
+        if (targetType.IsGenericType && sourceType.IsGenericType)
+        {
+            var sourceArgs = sourceType.GetGenericArguments();
+            var targetArgs = targetType.GetGenericArguments();
+
+            if (sourceArgs.Length != targetArgs.Length)
+                throw new InvalidOperationException($"Cannot convert: {sourceType} and {targetType} have different generic arity.");
+
+            var rebuiltArgs = new List<Expression>();
+
+            for (int i = 0; i < sourceArgs.Length; i++)
+            {
+                var fieldOrPropName = $"Item{i + 1}";
+                MemberExpression innerSource;
+
+                // Try to access as field first (like ValueTuple), then as property fallback
+                var field = sourceType.GetField(fieldOrPropName);
+                if (field != null)
+                    innerSource = Expression.Field(parameter, fieldOrPropName);
+                else
+                {
+                    var prop = sourceType.GetProperty(fieldOrPropName);
+                    if (prop != null)
+                        innerSource = Expression.Property(parameter, fieldOrPropName);
+                    else
+                        throw new InvalidOperationException($"No Item{i + 1} found on {sourceType}");
+                }
+
+                // Recurse for each generic argument
+                rebuiltArgs.Add(BuildCompatibleNewInstance(innerSource, sourceArgs[i], targetArgs[i]));
+            }
+
+            var ctor = targetType.GetConstructor(targetArgs)
+                ?? throw new InvalidOperationException($"No suitable constructor for {targetType}.");
+
+            return Expression.New(ctor, rebuiltArgs);
+        }
+
+        // Last fallback: try direct convert for primitive or non-generic
+        var compatibleTypes = GetCompatibleTypes(sourceType);
+        if (compatibleTypes.Contains(targetType) || targetType.IsAssignableFrom(sourceType))
+            return Expression.Convert(parameter, targetType);
+
+        throw new InvalidOperationException($"Cannot build expression to convert from {sourceType} to {targetType}.");
     }
 }

@@ -19,12 +19,13 @@ public class Respawn : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (enabled && savedTemplate != null && !armegeddon)
+        if (savedTemplate != null && !armegeddon)
         {
-            savedTemplate.SetActive(true);
+            Debug.Log($"[Respawn] Activated template {savedTemplate.name} at {savedTemplate.transform.position}");
             foreach (Collider c in savedTemplate.GetComponentsInChildren<Collider>()) c.enabled = true;
             foreach (MonoBehaviour m in savedTemplate.GetComponentsInChildren<MonoBehaviour>()) m.enabled = true;
             savedTemplate.layer = LayerMask.NameToLayer("Default");
+            savedTemplate.SetActive(true);
         }
     }
 }

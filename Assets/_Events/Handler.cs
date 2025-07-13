@@ -7,7 +7,7 @@ public interface IHas<out T>
     public T Handler { get; }
 }
 
-public abstract class Handler<T>
+public class Handler<T>
 {
     public Action<T> Handle { get; }
     public Handler(Action<T> handler) => Handle = handler;
