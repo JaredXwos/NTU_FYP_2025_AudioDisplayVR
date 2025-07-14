@@ -20,9 +20,6 @@ public class LatestGrabExclusivePhysics : MonoBehaviour, IHas<GrabEventHandler>
         {
             if (payload is IPieceCollidable p)
                 p.SetPieceCollisionEnabled(ReferenceEquals(p, activeCoreComponent));
-            Debug.Log($"Payload {payload.gameObject.name}");
-            Debug.Log($"Parent {activeCoreComponent.gameObject.name}");
-            Debug.Log(ReferenceEquals(payload, activeCoreComponent));
         }
     );
 }
