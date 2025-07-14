@@ -20,7 +20,6 @@ using static UnityEngine.EventSystems.EventTrigger;
 public class Bouyancy : MonoBehaviour, ILoad
 {
     [SerializeField] private float weightPerUnitCubeFluid;
-    [SerializeField] private float gravity = 9.81f;
     [SerializeField, ReadOnly] private float radius;
     [SerializeField, ReadOnly] private Vector3 origin;
     [SerializeField, ReadOnly] private Vector3 CentreOfBuoyancy;
@@ -99,7 +98,4 @@ public class Bouyancy : MonoBehaviour, ILoad
         float angleRadians = angleDegrees * Mathf.Deg2Rad;
         return 2f / 3f * Mathf.PI * radius * radius * radius * angleRadians * weightPerUnitCubeFluid;
     }
-
-    private static string Vec3(Vector3 v)
-=> $"({v.x:R}, {v.y:R}, {v.z:R})";
 }

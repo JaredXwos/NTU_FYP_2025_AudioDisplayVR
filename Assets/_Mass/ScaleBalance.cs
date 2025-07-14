@@ -53,7 +53,6 @@ public class ScaleBalance : MonoBehaviour {
             })
             .Aggregate(Vector3.zero, (sum, torque) => sum + torque);
 
-        // divide by moment of inertia to get angular acceleration
         angularAcceleration /= momentOfInertia;
 
         _angularDisplacement.Value = angularDisplacement;
@@ -67,26 +66,19 @@ public class ScaleBalance : MonoBehaviour {
 
         foreach (var weight in weightSet)
         {
-            // Skip if this weight is disabled (matches how Unity disables scripts)
             if (!weight.enabled) continue;
 
-            // Draw the force vector as an arrow from position
             Vector3 start = weight.Position;
-            Vector3 end = start + weight.Force; // scale down for visualization
+            Vector3 end = start + weight.Force;
 
             Gizmos.DrawLine(start, end);
 
-            // Draw a small sphere at the start to mark the point of application
             Gizmos.DrawSphere(start, 0.02f);
 
-            // Optionally draw a smaller sphere at the force tip
             Gizmos.DrawSphere(end, 0.01f);
         }
     }
     #endregion
-
-    private static string Vec3(Vector3 v)
-    => $"({v.x:R}, {v.y:R}, {v.z:R})";
 
     public Vector3 Orientation => _angularDisplacement.Value;
     public Quaternion GetOrientation => Quaternion.AngleAxis(
