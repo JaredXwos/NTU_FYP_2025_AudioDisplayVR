@@ -14,7 +14,7 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     [SerializeField] private Vector3Int stackHeights = Vector3Int.zero;
 
     [Header("Collision Information")]
-    [SerializeField] private bool pieceCollisionEnabled = true;
+    [SerializeField, ReadOnly] private bool pieceCollisionEnabled = true;
     [Tooltip("Legality of target transform. Actual transform defaults to last legal transform.")]
     [SerializeField] private volatile bool illegal;
     [SerializeField, ReadOnly] private GameObject[] collisions;
@@ -93,7 +93,11 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
             collider.bottom < transform.position.y
         ));
 
-    public void SetPieceCollisionEnabled(bool isEnabled) => pieceCollisionEnabled = isEnabled;
+    public void SetPieceCollisionEnabled(bool isEnabled)
+    {
+        pieceCollisionEnabled = isEnabled;
+        Debug.Log(pieceCollisionEnabled);
+    }
     #endregion
 
     #region IGrabbable
