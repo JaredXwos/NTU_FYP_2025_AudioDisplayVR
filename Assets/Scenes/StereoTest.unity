@@ -1079,6 +1079,7 @@ GameObject:
   - component: {fileID: 2030377279}
   - component: {fileID: 2030377280}
   - component: {fileID: 2030377281}
+  - component: {fileID: 2030377282}
   m_Layer: 0
   m_Name: Piece
   m_TagString: Untagged
@@ -1116,6 +1117,7 @@ MonoBehaviour:
   listeners: []
   groundClearance: ffffffffffffffffffffffff
   broadcastFitEvent: 1
+  isCurrentlyFit: 0
 --- !u!114 &2030377276
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1149,7 +1151,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Weight: 100
-  TotalStage: 1
+  TotalStage: 5
   CurrentStage: 0
 --- !u!114 &2030377279
 MonoBehaviour:
@@ -1163,6 +1165,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8acfdd6fed9fdf64aa2ef95294ca2a36, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  WeakenOnAny: 1
 --- !u!114 &2030377280
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1185,6 +1188,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a262ab8e2a5bcd044acf5f8b6fbc5544, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &2030377282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2030377272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c29d0426c1bf2914aa7fb984c3baaf8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807

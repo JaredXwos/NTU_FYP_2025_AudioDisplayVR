@@ -23,7 +23,7 @@ public abstract class CoreComponent : MonoBehaviour
         foreach (var (name, binding) in Bindings)
         {
             foreach (var component in GetComponents<MonoBehaviour>())
-                if (componentType.IsAssignableFrom(component.GetType()))
+                if (component.GetType().GetInterfaces().Any(i => Check.GetCompatibleTypes(componentType).Contains(i)))
             {
                 var prop = component.GetType()
                     .GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);

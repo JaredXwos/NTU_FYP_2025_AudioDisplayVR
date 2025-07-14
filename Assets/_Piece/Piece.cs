@@ -64,6 +64,7 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
             stackRenderers[i] = cube.GetComponent<Renderer>();
         }
         ResetHeights(stackHeights);
+        CanBeMoved = true;
     }
     protected virtual void Update()
     {
@@ -98,6 +99,7 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     #region IGrabbable
     public void SetTransform(Vector3? position, int? orientation)
     {
+        if (!CanBeMoved) return;
         if (position.HasValue) piecePosition.Value = position.Value;
         if (orientation.HasValue) pieceOrientation.Value = orientation.Value;
     }
@@ -125,7 +127,8 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     protected override (string name, System.Func<object> binding)[] Bindings => new (string, System.Func<object>)[]
     {
         ("PieceBottom", (System.Func<(int, int, int)[]>) (() => PieceBottom)),
-        ("ComponentTransforms", (System.Func<Transform[]>) (() => stackTransforms))
+        ("ComponentTransforms", (System.Func<Transform[]>) (() => stackTransforms)),
+        ("CanBeMovedSetter", () => (System.Action<bool>)(value => CanBeMoved = value)),
     };
 
     FitEventHandler<Piece> IHas<FitEventHandler<Piece>>.Handler => new(

@@ -14,6 +14,7 @@ public class GroundSonar : Dispatch
 {
     [SerializeField, ReadOnly] private int[] groundClearance = new int[3] {-1, -1, -1};
     [SerializeField] private bool broadcastFitEvent = true;
+    [SerializeField, ReadOnly] private bool isCurrentlyFit = false;
 
     private readonly Volatile<int[]> _groundClearance = new(new int[3]);
     public CoreComponent Parent { get; private set; }
@@ -60,11 +61,10 @@ public class GroundSonar : Dispatch
         _groundClearance.Value = (int[])groundClearance.Clone();
 
         
-        if (broadcastFitEvent && collided != null && groundClearance.All(h => h == 0))
-        {
-            Debug.Log($"[Event Log] {Parent.GetType()}, {collided.GetType()}");
+        if (broadcastFitEvent && collided != null && groundClearance.All(h => h == 0) && !isCurrentlyFit)
             Invoke(Activator.CreateInstance(PayloadType, new object[] { Parent, collided }));
-        }
+        
+        isCurrentlyFit = collided != null && groundClearance.All(h => h == 0);
     }
     #endregion
     protected override Type HandlerType { get; set; }

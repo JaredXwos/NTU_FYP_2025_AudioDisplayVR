@@ -1,6 +1,11 @@
+using System;
 using UnityEngine;
 
-public class FreezeOnFit : IHas<FitEventHandler<CoreComponent>>
+[RequireComponent(typeof(CoreComponent))]
+public class FreezeOnFit : MonoBehaviour, IHas<FitEventHandler<CoreComponent>>, IRequireInfo<CoreComponent>
 {
-    FitEventHandler<CoreComponent> IHas<FitEventHandler<CoreComponent>>.Handler => throw new System.NotImplementedException();
+    FitEventHandler<CoreComponent> IHas<FitEventHandler<CoreComponent>>.Handler => new(
+        payload => CanBeMovedSetter(false));
+
+    public Action<bool> CanBeMovedSetter { get; set; }
 }
