@@ -14,13 +14,14 @@ public class FreezeOnFit : MonoBehaviour, IHas<FitEventHandler<CoreComponent>>, 
             enabled = false;
             return;
         }
+        handler = new(
+            payload => { if (ReferenceEquals(payload.Item1, Parent)) CanBeMovedSetter(false); },
+            $"{GetType()} on {gameObject.name}"
+        );
     }
 
-    FitEventHandler<CoreComponent> IHas<FitEventHandler<CoreComponent>>.Handler => new(
-        payload => {
-            if (ReferenceEquals(payload.Item1, Parent)) CanBeMovedSetter(false);
-
-    });
+    FitEventHandler<CoreComponent> handler;
+    FitEventHandler<CoreComponent> IHas<FitEventHandler<CoreComponent>>.Handler => handler;
 
     public Action<bool> CanBeMovedSetter { get; set; }
 }

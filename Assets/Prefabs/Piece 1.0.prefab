@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 8250579403698899657}
   - component: {fileID: 5288973384732523517}
   - component: {fileID: -8026677298091338059}
+  - component: {fileID: 457204031801468385}
   m_Layer: 0
   m_Name: Piece 1.0
   m_TagString: Untagged
@@ -152,3 +153,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   activeCoreComponent: {fileID: 0}
+--- !u!114 &457204031801468385
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 929320378857853068}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6ad6048cc8efce4c8f93e878080b161, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GroundSonar: {fileID: 0}
+  minimumFrequency: 226
+  maximumFrequency: 1200
+  maximumWeight: 100
+  exponent: 2

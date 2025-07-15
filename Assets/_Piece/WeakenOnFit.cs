@@ -7,5 +7,5 @@ public class WeakenOnFit : EventCascade<FitEventHandler<CoreComponent>, (CoreCom
     [SerializeField] private bool WeakenOnAny;
     protected override void Dispatch(IWeaken component) => component.Weaken();
     
-    protected override bool Condition((CoreComponent piece, GameObject gameObject) payload) => enabled && WeakenOnAny || payload.piece == GetComponent<CoreComponent>();
+    protected override bool Condition((CoreComponent piece, GameObject gameObject) payload) => this != null && enabled && WeakenOnAny || payload.piece == GetComponent<CoreComponent>();
 }   

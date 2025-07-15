@@ -1,13 +1,36 @@
 using System;
 using UnityEngine;
 
+[Serializable]
+public struct NoteIndex
+{
+    public int[] Index;
+    public bool Validity;
+
+    public NoteIndex(bool validity, int[] index)
+    {
+        Validity = validity;
+        Index = index ?? new int[3];
+    }
+}
+
+public interface INoteIndexInput
+{
+    NoteIndex NoteIndex {  get; }
+}
+
+public interface IFrequencyInput
+{
+    float Frequency { get; }
+}
+
 public abstract class FitCueAudioGenerator : AudioGenerator
 {
     [Header("Components")]
     // -----------------------------------------------------------------------------
 
-    [Tooltip("Must implement IToneInputProvider")]
-    [SerializeField] protected GroundSonar input;
+    [SerializeField] protected INoteIndexInput noteIndexInput;
+    [SerializeField] protected IFrequencyInput frequencyInput;
 
     [Tooltip("Set of notes to be played when the input is valid")]
     [SerializeField] protected Chord validChord;
@@ -32,12 +55,20 @@ public abstract class FitCueAudioGenerator : AudioGenerator
     #region MonoBehavior
     protected override void Awake()
     {
-        if (input == null)
+        if (!Check.PropertyEnabledElseAssign<INoteIndexInput>(this, "noteIndexInput"))
         {
-            Debug.LogWarning($"[{GetType().Name}] No valid input assigned on {gameObject.name}, disabling component.");
+            Debug.LogWarning($"[{GetType().Name}] No valid note index input assigned on {gameObject.name}, disabling component.");
             enabled = false;
             return;
         }
+
+        if (!Check.PropertyEnabledElseAssign<IFrequencyInput>(this, "frequencyInput"))
+        {
+            Debug.LogWarning($"[{GetType().Name}] No valid note index input assigned on {gameObject.name}, disabling component.");
+            enabled = false;
+            return;
+        }
+
         if (validChord == null)
         {
             Debug.LogWarning($"[{GetType().Name}] No validChord assigned on {gameObject.name}, using silence.");

@@ -25,14 +25,13 @@ public abstract class CoreComponent : MonoBehaviour
             foreach (var component in GetComponents<MonoBehaviour>())
                 if (component.GetType().GetInterfaces().Any(i => Check.GetCompatibleTypes(componentType).Contains(i)))
             {
-                var prop = component.GetType()
+                PropertyInfo prop = component
+                    .GetType()
                     .GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
                 if (prop != null && prop.CanWrite && prop.PropertyType.IsAssignableFrom(binding().GetType()))
-                {
                     prop.SetValue(component, binding());
-                    Debug.Log($"Set {name} on {component.GetType().Name}");
-                }
+                
             }
         }
     }

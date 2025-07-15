@@ -1,5 +1,4 @@
 using System.Linq;
-using Unity.Collections;
 using UnityEngine;
 
 
@@ -14,11 +13,11 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     [SerializeField] private Vector3Int stackHeights = Vector3Int.zero;
 
     [Header("Collision Information")]
-    [SerializeField, ReadOnly] private bool pieceCollisionEnabled = true;
+    [SerializeField] private bool pieceCollisionEnabled = true;
     [Tooltip("Legality of target transform. Actual transform defaults to last legal transform.")]
     [SerializeField] private volatile bool illegal;
-    [SerializeField, ReadOnly] private GameObject[] collisions;
-    [SerializeField, ReadOnly] private int[] bottomHeights;
+    [SerializeField] private GameObject[] collisions;
+    [SerializeField] private int[] bottomHeights;
 
     protected readonly Transform[] stackTransforms = new Transform[3];
     protected readonly Renderer[] stackRenderers = new Renderer[3];
@@ -43,6 +42,10 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     #region MonoBehavior
     protected override void Awake()
     {
+        handler = new(
+            ((Piece piece, GameObject gameObject) payload) => {if (payload.piece == this && heightResettable) ResetHeights();},
+            gameObject.name
+        );
         base.Awake();
         InterfaceRegistry<IPieceCollidable>.Register(this);
         piecePosition.Value = transform.position;
@@ -96,7 +99,7 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     public void SetPieceCollisionEnabled(bool isEnabled)
     {
         pieceCollisionEnabled = isEnabled;
-        Debug.Log(pieceCollisionEnabled);
+        Debug.Log($"{gameObject.name} -> SetPieceCollisionEnabled({isEnabled}), now pieceCollisionEnabled={pieceCollisionEnabled}\n{System.Environment.StackTrace}");
     }
     #endregion
 
@@ -134,10 +137,6 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
         ("ComponentTransforms", (System.Func<Transform[]>) (() => stackTransforms)),
         ("CanBeMovedSetter", () => (System.Action<bool>)(value => CanBeMoved = value)),
     };
-
-    FitEventHandler<Piece> IHas<FitEventHandler<Piece>>.Handler => new(
-        ((Piece piece, GameObject gameObject) payload) =>
-        {
-            if (payload.piece == this && heightResettable) ResetHeights();
-        });
+    FitEventHandler<Piece> handler;
+    FitEventHandler<Piece> IHas<FitEventHandler<Piece>>.Handler => handler;
 }

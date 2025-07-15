@@ -22,15 +22,9 @@ public class SequentialSingleToneFCAG : FitCueAudioGenerator
 
         while(!token.IsCancellationRequested)
         {
-            int[] selection = input.GetGroundClearance();
-            float[] notes = selection.Any(x => x < 0)? invalidChord.Generate(frequency) : validChord.Generate(frequency);
-            selection = selection.Distinct().Count() > 2 ?
-                selection.Select(v => selection.Count(x => x < v)).ToArray() : // if there are three distinct values, assign 0, 1, 2 largest to smallest
-                selection.Select(v =>                                          // if there are less than 2 distinct values
-                    v == selection.Max() ? 0 :                                 // assign all largest values 0
-                    v > selection.Max() - 1 ? 2 :                              // else if the value deviates from the largest by more than 2 or more, clip it to 2
-                    v - selection.Min()
-                ).ToArray();
+            int[] selection = noteIndexInput.NoteIndex.Index;
+            frequency = frequencyInput.Frequency;
+            float[] notes = noteIndexInput.NoteIndex.Validity? validChord.Generate(frequency) : invalidChord.Generate(frequency);
 
             if (handle.IsCompleted)
             {

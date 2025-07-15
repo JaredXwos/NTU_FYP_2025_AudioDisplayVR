@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class FitEventHandler<collider> : Handler<(collider, GameObject)> where collider : CoreComponent
 {
-    public FitEventHandler(Action<(collider, GameObject)> handler) : base(handler) {}
+    public FitEventHandler(Action<(collider, GameObject)> handler, string identifier = "Unknown FitEventHandler") : base(handler, identifier) {}
 }
 
 [RequireComponent(typeof(CoreComponent))]
@@ -67,7 +67,7 @@ public class GroundSonar : Dispatch
         isCurrentlyFit = collided != null && groundClearance.All(h => h == 0);
     }
     #endregion
-    protected override Type HandlerType { get; set; }
+    public override Type HandlerType { get; protected set; }
 
     protected override Type PayloadType { get; set; }
 

@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class GrabEventHandler : Handler<CoreComponent>
 {
-    public GrabEventHandler(Action<CoreComponent> handler) : base(handler)
+    public GrabEventHandler(Action<CoreComponent> handler, string identifier) : base(handler, identifier)
     {
     }
 }
@@ -23,7 +23,7 @@ public class Cursor : Dispatch
 
     private readonly Dictionary<IGrabbable, (int, Vector3)> grabbed = new();
 
-    protected override Type HandlerType { get; set; }
+    public override Type HandlerType { get; protected set; }
     protected override Type PayloadType { get; set; }
 
     protected override void Awake()

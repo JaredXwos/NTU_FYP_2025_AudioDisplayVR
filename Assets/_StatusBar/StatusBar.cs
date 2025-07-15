@@ -10,6 +10,10 @@ public class StatusBar : MonoBehaviour, IHas<FitEventHandler<Piece>>
     #region MonoBehaviour
     private void Awake()
     {
+        handler = new(
+            _ =>{ if (statusText != null) statusText.text = $"Score: {++score}"; },
+            gameObject.name
+        );
         statusText ??= GetComponent<TextMeshProUGUI>() ?? FindFirstObjectByType<TextMeshProUGUI>();
         if(statusText == null)
         {
@@ -22,6 +26,7 @@ public class StatusBar : MonoBehaviour, IHas<FitEventHandler<Piece>>
     #endregion
 
     #region IHandlePieceFitEvent
+    FitEventHandler<Piece> handler;
     FitEventHandler<Piece> IHas<FitEventHandler<Piece>>.Handler => new(
         ((Piece piece, GameObject gameObject) _) =>
         {
