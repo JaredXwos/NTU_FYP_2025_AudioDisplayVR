@@ -67,6 +67,7 @@ public abstract class AudioGenerator : MonoBehaviour
 
     protected virtual void OnAudioFilterRead(float[] data, int channels)
     {
+        if(IsPlaying)
         for (int i = 0; i < data.Length / channels; i++)
         {
             for (int c = 0; c < channels; c++)
@@ -87,6 +88,8 @@ public abstract class AudioGenerator : MonoBehaviour
                 buffer.Dispose();
     }
     #endregion
+
+    public bool IsPlaying { private get; set; }
 
     protected abstract void BackgroundBufferRefresh();
 }

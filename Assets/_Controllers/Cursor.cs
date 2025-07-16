@@ -6,9 +6,12 @@ using UnityEngine;
 
 public class GrabEventHandler : Handler<CoreComponent>
 {
-    public GrabEventHandler(Action<CoreComponent> handler, string identifier) : base(handler, identifier)
-    {
-    }
+    public GrabEventHandler(Action<CoreComponent> handler, string identifier) : base(handler, identifier) {}
+}
+
+public class ReleaseEventHandler : Handler<CoreComponent>
+{
+    public ReleaseEventHandler(Action<CoreComponent> handler, string identifier = "Unknown Parent") : base(handler, identifier) { }
 }
 
 public class Cursor : Dispatch

@@ -83,7 +83,11 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
         transform.position = piecePosition.Value;
     }
 
-    protected virtual void OnDestroy() => InterfaceRegistry<IPieceCollidable>.Unregister(this);
+    protected virtual void OnDestroy()
+    {
+        InterfaceRegistry<IPieceCollidable>.Unregister(this);
+        handler.Dispose();
+    }
 
     #endregion
 
@@ -99,7 +103,6 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     public void SetPieceCollisionEnabled(bool isEnabled)
     {
         pieceCollisionEnabled = isEnabled;
-        Debug.Log($"{gameObject.name} -> SetPieceCollisionEnabled({isEnabled}), now pieceCollisionEnabled={pieceCollisionEnabled}\n{System.Environment.StackTrace}");
     }
     #endregion
 

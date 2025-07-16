@@ -6,7 +6,7 @@ public class LatestGrabExclusivePhysics : MonoBehaviour, IHas<GrabEventHandler>
 
     private void Awake()
     {
-        if (!Check.PropertyEnabledElseAssign<CoreComponent>(this, "activeCoreComponent"))
+        if (this != null && !Check.PropertyEnabledElseAssign<CoreComponent>(this, "activeCoreComponent"))
         {
             Debug.LogWarning("[LatestGrabExclusivePhysics] No attached core component, disabling");
             enabled = false;
@@ -15,14 +15,12 @@ public class LatestGrabExclusivePhysics : MonoBehaviour, IHas<GrabEventHandler>
         handler = new(
             payload =>
                 {
-                    if (payload is IPieceCollidable p)
+                    if (this != null && payload != null && payload is IPieceCollidable p)
                     {
                         p.SetPieceCollisionEnabled(ReferenceEquals(p, activeCoreComponent));
-                        Debug.Log($"Comparison: {activeCoreComponent.gameObject.name} is {payload.gameObject.name}? {ReferenceEquals(p, activeCoreComponent)}");
                     }
-
                 },
-            $"{GetType()} on {gameObject.name}"
+            this == null? "Destroyed Latest Grab Exclusive Physics" : $"Latest Grab Exclusive Physics on {gameObject.name}"
         );
 
     }

@@ -42,18 +42,12 @@ public abstract class Dispatch : MonoBehaviour
     protected virtual void Start()
     {
         BuildInvokes();
-        typeof(InterfaceRegistry<>)
-            .MakeGenericType(typeof(Dispatch))
-            .GetMethod("Register", BindingFlags.Public | BindingFlags.Static)
-            .Invoke(null, new object[] { this });
+        InterfaceRegistry<Dispatch>.Register(this);
     }
 
     protected virtual void OnDestroy()
     {
-        typeof(InterfaceRegistry<>)
-            .MakeGenericType(typeof(Dispatch))
-            .GetMethod("Unregister", BindingFlags.Public | BindingFlags.Static)
-            .Invoke(null, new object[] { this });
+        InterfaceRegistry<Dispatch>.Unregister(this);
     }
 
     protected void Invoke(object payload)

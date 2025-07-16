@@ -12,38 +12,23 @@ public class Handler<T> : IDisposable
 {
     public Action<T> Handle { get; }
     public string Identifier { get; }
-    
-    private readonly Type handlerRegistryType;
 
     public Handler(Action<T> handler, string identifier = "Unknown Parent")
     {
         Handle = handler;
         Identifier = identifier;
 
-        handlerRegistryType = typeof(InterfaceRegistry<>)
-            .MakeGenericType(GetType());
+        InterfaceRegistry.Register(this);
 
-        handlerRegistryType
-            .GetMethod("Register", BindingFlags.Public | BindingFlags.Static)
-            .Invoke(null, new object[] { this });
-
-        IReadOnlyCollection<Dispatch> allDispatchers = InterfaceRegistry<Dispatch>.All;
-
-        foreach (Dispatch dispatcher in allDispatchers) 
+        foreach (Dispatch dispatcher in InterfaceRegistry<Dispatch>.All) 
             if(Check.GetCompatibleTypes(dispatcher.HandlerType).Contains(GetType())) 
                 dispatcher.CompileInvoke(this);
     }
 
     public void Dispose()
     {
-        handlerRegistryType
-            .GetMethod("Unregister", BindingFlags.Public | BindingFlags.Static)
-            .Invoke(null, new object[] { this });
-
-        // Now tell all dispatchers to remove this handler
-        IReadOnlyCollection<Dispatch> allDispatchers = InterfaceRegistry<Dispatch>.All;
-
-        foreach (Dispatch dispatcher in allDispatchers) dispatcher.DeleteInvoke(this);
+        InterfaceRegistry.Unregister(this);
+        foreach (Dispatch dispatcher in InterfaceRegistry<Dispatch>.All) dispatcher.DeleteInvoke(this);
     }
 }
 
