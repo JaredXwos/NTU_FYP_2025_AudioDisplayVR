@@ -4,10 +4,11 @@ using UnityEngine;
 
 public interface IRequireInfo<T> { }
 
-public abstract class CoreComponent : MonoBehaviour
+public abstract class CoreComponent : LimitedClass
 {
-    protected virtual void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         if(GetComponents<CoreComponent>().Where(c => c.enabled).Count() > 1)
         {
             Debug.LogWarning($"[{name}]: More than 1 enabled core component detected. Disabling.");

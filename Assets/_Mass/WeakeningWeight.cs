@@ -1,18 +1,19 @@
-using Unity.Collections;
 using UnityEngine;
 
-public class WeakeningWeight : MonoBehaviour, ILoad, IWeaken
+public class WeakeningWeight : MonoBehaviour, ILoad, IWeaken, IRefresh
 {
     [SerializeField] private float Weight = 0f;
+    [SerializeField] private float MaxWeight = 100f;
+    [SerializeField] private float MinWeight = 10f;
     [SerializeField] private int TotalStage = 0;
-    [SerializeField, ReadOnly] private float CurrentStage = 0;
+    [SerializeField] private float CurrentStage = 0;
 
     private readonly Volatile<float> weight = new();
     private readonly Volatile<Vector3> centreOfGravity = new();
 
     private void Awake()
     {
-        weight.Value = Weight;
+        Refresh();
         centreOfGravity.Value = transform.position;
     }
 
@@ -30,5 +31,11 @@ public class WeakeningWeight : MonoBehaviour, ILoad, IWeaken
             if (TryGetComponent<Death>(out var death)) death.Trigger();
             enabled = false;
         }
+    }
+
+    public void Refresh()
+    {
+        Weight = Random.Range(MinWeight, MaxWeight);
+        weight.Value = Weight;
     }
 }

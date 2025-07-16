@@ -1,6 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public interface IHas<out T>
@@ -32,22 +31,39 @@ public class Handler<T> : IDisposable
     }
 }
 
-public abstract class EventCascade<HANDLER, Payload, Component> : MonoBehaviour, IHas<HANDLER>
-    where HANDLER : Handler<Payload>
+/// <summary>
+/// Example of a concrete handler for object payloads. 
+/// Typically you'd define this near your Dispatch class for convenience,
+/// but it can live anywhere in your codebase.
+/// </summary>
+internal class ExampleHandler : Handler<object>
 {
-    public HANDLER handler;
-    public HANDLER Handler => handler;
-
-    protected virtual void Awake() => handler = (HANDLER) Activator.CreateInstance(
-        typeof(HANDLER), 
-        (Action<Payload>) (p => {
-            if (Condition(p)) 
-                foreach (Component component in GetComponentsInChildren<Component>()) 
-                    Dispatch(component);
-        }),
-        $"{GetType()} on {gameObject.name}"
-    );
-
-    protected abstract void Dispatch(Component component);
-    protected virtual bool Condition(Payload payload) => true;
+    // Constructor simply passes through to the base Handler, registering itself.
+    internal ExampleHandler(Action<object> handler, string identifier = "Example Handler")
+        : base(handler, identifier) { }
 }
+
+/// <summary>
+/// Illustrative pattern of how to structure a listener MonoBehaviour 
+/// that holds a handler and implements IHas.
+/// This is purely a template — not intended for actual use in gameplay.
+/// </summary>
+internal abstract class ExampleListener : MonoBehaviour, IHas<ExampleHandler>
+{
+    private ExampleHandler handler;
+    ExampleHandler IHas<ExampleHandler>.Handler => handler;
+
+    private void Awake()
+    {
+        // Example of creating the handler. 
+        // In a real listener you would provide actual logic for handling the payload.
+        handler = new ExampleHandler(
+            p => { return; },
+            "Example Listener"
+        );
+
+        // Since this is only a template, we throw to prevent accidental usage.
+        throw new NotImplementedException("This is only an example template. Implement in your own concrete listener.");
+    }
+}
+

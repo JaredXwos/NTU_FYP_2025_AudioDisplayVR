@@ -134,6 +134,12 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
         stackHeights = new Vector3Int(heights[0], heights[1], heights[2]);
     }
 
+    public void SetCanBeMoved(object Key, bool canBeMoved)
+    {
+        Verify(Key);
+        CanBeMoved = canBeMoved;
+    }
+
     protected override (string name, System.Func<object> binding)[] Bindings => new (string, System.Func<object>)[]
     {
         ("PieceBottom", (System.Func<(int, int, int)[]>) (() => PieceBottom)),
