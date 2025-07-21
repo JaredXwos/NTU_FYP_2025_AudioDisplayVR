@@ -53,7 +53,7 @@ public class Cursor : Dispatch
                 foreach (Collider hit in Physics.OverlapSphere(transform.position, grabRadius))
                 {
                     var grabbable = hit.GetComponentInParent<IGrabbable>();
-                    if (grabbable == null) continue;
+                    if (grabbable == null || !grabbable.CanBeMoved) continue;
 
                     if (!grabbed.ContainsKey(grabbable))
                     {
@@ -61,7 +61,6 @@ public class Cursor : Dispatch
                         CoreComponent Parent = hit.transform.root.gameObject.GetComponent<CoreComponent>();
                         Invoke(new GrabPayload(Parent, true));
                     }
-                        
                 }
                 grabCount = grabbed.Count;
                 foreach(var(grabbable, (rotationDifference, positionDifference)) in grabbed)

@@ -1,4 +1,3 @@
-using System.Linq;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
@@ -6,13 +5,6 @@ using UnityEngine;
 
 public class SequentialSingleToneFCAG : FitCueAudioGenerator
 {
-    protected override void Awake()
-    {
-        base.Awake();
-        Debug.LogWarning($"Valid: {validChord.Generate(226).Length}, Invalid: {invalidChord.Generate(226).Length}");
-    }
-
-
     protected override void BackgroundBufferRefresh()
     {
         NativeArray<JobHandle> handles = new(3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);

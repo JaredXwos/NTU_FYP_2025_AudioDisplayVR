@@ -66,5 +66,3 @@ public abstract class RefreshOn<HANDLER, PAYLOAD>
 {
     protected override void Dispatch(IRefresh component) => component.Refresh();
 }
-
-

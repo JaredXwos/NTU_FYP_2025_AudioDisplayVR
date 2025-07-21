@@ -54,6 +54,7 @@ public class GroundClearanceWeightFCAGII : MonoBehaviour, INoteIndexInput, IFreq
 
     private void UpdateFrequency()
     {
+        if (maximumWeight <= 0f || minimumFrequency <= 0f || maximumFrequency <= minimumFrequency) return;
         float t = 1f - Mathf.Pow(Mathf.Clamp01(Weight.Force.magnitude / maximumWeight), exponent);
         _frequency =  Mathf.Exp(Mathf.Lerp(Mathf.Log(minimumFrequency), Mathf.Log(maximumFrequency), t));
         frequency.Value = _frequency;

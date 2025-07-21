@@ -127,6 +127,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -8418283433598683979, guid: 938f2c9f0c8372f48923a9d44db6dfb3, type: 3}
+      propertyPath: IsPlaying
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 929320378857853068, guid: 938f2c9f0c8372f48923a9d44db6dfb3, type: 3}
       propertyPath: m_Name
       value: Piece 1.0 (3)
@@ -290,6 +294,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -8418283433598683979, guid: 938f2c9f0c8372f48923a9d44db6dfb3, type: 3}
+      propertyPath: IsPlaying
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 929320378857853068, guid: 938f2c9f0c8372f48923a9d44db6dfb3, type: 3}
       propertyPath: m_Name
       value: Piece 1.0 (2)
@@ -896,7 +904,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03ae0ccb5942e4844b345ce06c97ad26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  IsPlaying: 0
+  IsPlaying: 1
   Read: 0
   sampleRate: 0
   bufferTotalLength: 0
