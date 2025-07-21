@@ -9,42 +9,45 @@ public interface IRequireAuthorisation<T>
     public object Key { set; }
 }
 
-public class LimitedClass : MonoBehaviour
+public class Auth
 {
+    private readonly MonoBehaviour Host;
+    private readonly HashSet<Type> CompatibleRequestorTypes;
     private readonly object key = new();
-    protected virtual void Awake()
+    public Auth(MonoBehaviour host)
     {
-        HashSet<Type> compatibleRequestorTypes = Check.GetCompatibleTypes(
+        Host = host; 
+        CompatibleRequestorTypes = Check.GetCompatibleTypes(
             typeof(IRequireAuthorisation<>)
-                .MakeGenericType(GetType())
+                .MakeGenericType(Host.GetType())
         );
-
-        foreach (Type iface in GetType().GetInterfaces())
-            compatibleRequestorTypes.UnionWith( Check.GetCompatibleTypes(
-                typeof(IRequireAuthorisation<>)
-                .MakeGenericType(iface))
-            );
-        
-
-        foreach (MonoBehaviour monobehaviour 
-            in GetComponents<MonoBehaviour>()
+        Authenticate();
+    }
+    public void Authenticate()
+    {
+        foreach (MonoBehaviour monobehaviour
+            in Host.GetComponents<MonoBehaviour>()
             .Where(
                 t => t != null && t
                 .GetType()
                 .GetInterfaces()
-                .Any(i => compatibleRequestorTypes.Contains(i))
+                .Any(i => CompatibleRequestorTypes.Contains(i))
             ))
         {
             PropertyInfo Key = monobehaviour.GetType().GetProperty("Key");
             if (Key != null && Key.CanWrite)
                 Key.SetValue(monobehaviour, key);
-            
         }
     }
-
-    protected void Verify(object Key)
+    public void Verify(object Key)
     {
         if (!ReferenceEquals(Key, key))
-            throw new InvalidOperationException($"[{(!this ? "Unknown" : gameObject)}] Caller lacks required authentication");
+            throw new InvalidOperationException($"[{(!Host ? "Unknown" : Host.gameObject.name)}] Caller lacks required authentication");
     }
+}
+
+public interface ILimitedAccess
+{
+    public void Authenticate();
+    protected Auth Auth { get; }
 }

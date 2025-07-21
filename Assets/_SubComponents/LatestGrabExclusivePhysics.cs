@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class LatestGrabExclusivePhysics : MonoBehaviour, IHas<GrabEventHandler>
+public class LatestGrabExclusivePhysics : MonoBehaviour, IHas<Handler<GrabEvent, IPParentCoreComponent>>
 {
     [SerializeField] private CoreComponent activeCoreComponent;
 
@@ -12,19 +12,18 @@ public class LatestGrabExclusivePhysics : MonoBehaviour, IHas<GrabEventHandler>
             enabled = false;
             return;
         }
-        handler = new(
+        Handler = new(
             payload =>
                 {
-                    if (this != null && payload != null && payload is IPieceCollidable p)
-                    {
-                        p.SetPieceCollisionEnabled(ReferenceEquals(p, activeCoreComponent));
-                    }
+                    if (this != null && this.enabled &&
+                    payload != null && payload.Parent != null && 
+                    payload.Parent is IPieceCollidable p && activeCoreComponent is IPieceCollidable a)
+                        a.SetPieceCollisionEnabled(ReferenceEquals(p, a));
                 },
-            this == null? "Destroyed Latest Grab Exclusive Physics" : $"Latest Grab Exclusive Physics on {gameObject.name}"
+            this == null? "Destroyed Latest Grab Exclusive Physics" : $"Latest-grab Excl. Phys. on {gameObject.name}"
         );
-
     }
 
-    GrabEventHandler handler;
-    GrabEventHandler IHas<GrabEventHandler>.Handler => handler;
+    Handler<GrabEvent, IPParentCoreComponent> IHas<Handler<GrabEvent, IPParentCoreComponent>>.Handler => Handler;
+    protected Handler<GrabEvent, IPParentCoreComponent> Handler;
 }

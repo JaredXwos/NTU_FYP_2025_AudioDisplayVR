@@ -2,4 +2,4 @@ using System;
 using UnityEngine;
 
 [RequireComponent(typeof(CoreComponent))]
-public class FreezeOnFit : FreezeOn<FitEventHandler<CoreComponent>, (CoreComponent, GameObject)> { }
+public class FreezeOnFit : FreezeOn<FitEvent, FitEventPayload> { }

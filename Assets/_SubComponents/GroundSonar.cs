@@ -4,9 +4,16 @@ using System.Linq;
 using Unity.Collections;
 using UnityEngine;
 
-public class FitEventHandler<collider> : Handler<(collider, GameObject)> where collider : CoreComponent
+public record FitEventPayload : EventPayload, IPParentCoreComponent, IPActive, IPCollidee
 {
-    public FitEventHandler(Action<(collider, GameObject)> handler, string identifier = "Unknown FitEventHandler") : base(handler, identifier) {}
+    public CoreComponent Parent { get; }
+    public GameObject Collidee { get; }
+    public bool IsActive { get; }
+    public FitEventPayload(CoreComponent parent, GameObject collidee, bool isActive){
+        Parent = parent;
+        IsActive = isActive;
+        Collidee = collidee;    
+    }
 }
 
 [RequireComponent(typeof(CoreComponent))]
@@ -24,8 +31,8 @@ public class GroundSonar : Dispatch
     protected override void Awake()
     {
         Parent = GetComponent<CoreComponent>();
-        HandlerType = typeof(FitEventHandler<>).MakeGenericType(Parent.GetType());
-        PayloadType = typeof(ValueTuple<,>).MakeGenericType(Parent.GetType(), typeof(GameObject));
+        EventType = typeof(FitEvent);
+        PayloadType = typeof(FitEventPayload);
         base.Awake();
     }
     #region MonoBehavior
@@ -62,14 +69,11 @@ public class GroundSonar : Dispatch
 
         
         if (broadcastFitEvent && collided != null && groundClearance.All(h => h == 0) && !isCurrentlyFit)
-            Invoke(Activator.CreateInstance(PayloadType, new object[] { Parent, collided }));
+            Invoke(new FitEventPayload(Parent, collided, true));
         
         isCurrentlyFit = collided != null && groundClearance.All(h => h == 0);
     }
     #endregion
-    public override Type HandlerType { get; protected set; }
-
-    protected override Type PayloadType { get; set; }
 
     public int[] GetGroundClearance() => _groundClearance.Value;
 }

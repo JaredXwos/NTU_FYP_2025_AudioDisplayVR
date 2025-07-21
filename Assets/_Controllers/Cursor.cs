@@ -4,16 +4,17 @@ using System.Linq;
 using Unity.Collections;
 using UnityEngine;
 
-public class GrabEventHandler : Handler<CoreComponent>
-{
-    public GrabEventHandler(Action<CoreComponent> handler, string identifier) : base(handler, identifier) {}
-}
 
-public class ReleaseEventHandler : Handler<CoreComponent>
+public record GrabPayload : EventPayload, IPParentCoreComponent, IPActive
 {
-    public ReleaseEventHandler(Action<CoreComponent> handler, string identifier = "Unknown Parent") : base(handler, identifier) { }
+    public CoreComponent Parent { get; }
+    public bool IsActive { get; }
+    public GrabPayload(CoreComponent parent, bool isActive)
+    {
+        Parent = parent;
+        IsActive = isActive;
+    }
 }
-
 public class Cursor : Dispatch
 {
     [Header("Grabbing")]
@@ -26,13 +27,10 @@ public class Cursor : Dispatch
 
     private readonly Dictionary<IGrabbable, (int, Vector3)> grabbed = new();
 
-    public override Type HandlerType { get; protected set; }
-    protected override Type PayloadType { get; set; }
-
     protected override void Awake()
     {
-        HandlerType = typeof(GrabEventHandler);
-        PayloadType = typeof(CoreComponent);
+        EventType = typeof(GrabEvent);
+        PayloadType = typeof(GrabPayload);
         base.Awake();
 
         InputInterface[] inputs = GetComponents<InputInterface>();
@@ -60,7 +58,8 @@ public class Cursor : Dispatch
                     if (!grabbed.ContainsKey(grabbable))
                     {
                         grabbed[grabbable] = (grabbable.Orientation - input.PieceOrientation, grabbable.Position - transform.position);
-                        Invoke(hit.transform.root.gameObject.GetComponent<CoreComponent>());
+                        CoreComponent Parent = hit.transform.root.gameObject.GetComponent<CoreComponent>();
+                        Invoke(new GrabPayload(Parent, true));
                     }
                         
                 }

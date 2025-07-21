@@ -15,7 +15,7 @@ public class ScaleBalanceAngularDisplacementBWNAGII : MonoBehaviour, IBinauralWh
         get
         {
             Vector3 q = scaleBalance.Orientation;
-            float axisComponentMagnitude = new Vector3(q.x, q.y, q.z).magnitude * Mathf.Abs(q.x)/q.x;
+            float axisComponentMagnitude = new Vector3(q.x, q.y, q.z).magnitude * Mathf.Sign(q.z);
             return new Vector2(axisComponentMagnitude, 0);
         }
     }

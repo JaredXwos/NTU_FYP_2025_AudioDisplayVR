@@ -121,46 +121,59 @@ public static class Check
         return false;
     }
 
+    private static readonly Dictionary<Type, HashSet<Type>> SubsetTypes = new()
+    {
+        [typeof(object)] = new()
+    };
+    private static readonly HashSet<Type> Viewed = new();
+
     public static HashSet<Type> GetCompatibleTypes(Type type)
     {
-        var compatible = new HashSet<Type>();
+        if (type == null) return new();
 
-        if (type == null || type == typeof(object))
+        HashSet<Type> result = new();
+
+        if (SubsetTypes.TryGetValue(type, out var cached))
         {
-            compatible.Add(typeof(object));
-            return compatible;
+            cached.Add(type);
+            return cached;
         }
-
+        if (Viewed.Contains(type)) return new();
+        Viewed.Add(type);
+        // --- GENERIC HANDLING ---
         if (type.IsGenericType)
         {
-            // Get sets of compatible types for each generic argument
-            var argumentSets = type.GetGenericArguments()
+            // First, compute independent sets without mutation
+            HashSet<Type>[] argSets = type.GetGenericArguments()
+                .Where(arg => arg != null)
                 .Select(arg => GetCompatibleTypes(arg))
                 .ToArray();
 
-            // Get cartesian product of these sets
-            foreach (var combo in CartesianProduct(argumentSets))
+            // Then compute cartesian product and mutate safely
+            foreach (IEnumerable<Type> combo in CartesianProduct(argSets))
             {
                 try
                 {
-                    var genericType = type.GetGenericTypeDefinition().MakeGenericType(combo.ToArray());
-                    compatible.Add(genericType);
+                    var constructed = type.GetGenericTypeDefinition().MakeGenericType(combo.ToArray());
+                    result.Add(constructed);
                 }
-                catch
-                {
-                    // might fail on invalid generic combinations
-                }
+                catch { }
             }
         }
-        else
-        {
-            compatible.Add(type);
-        }
 
-        // Also add base types recursively
-        compatible.UnionWith(GetCompatibleTypes(type.BaseType));
+        // --- BASE TYPE ---
+        if (type.BaseType != null && type.BaseType != typeof(object))
+            result.UnionWith(GetCompatibleTypes(type.BaseType));
 
-        return compatible;
+        // --- INTERFACES ---
+        foreach (var i in type.GetInterfaces())
+            if (i != null && i != type)
+                result.UnionWith(GetCompatibleTypes(i));
+            
+        SubsetTypes[type] = result;
+
+        result.Add(type);
+        return result;
     }
 
     // Helper: computes cartesian product of sets

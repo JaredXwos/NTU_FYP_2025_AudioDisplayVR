@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public interface IGrabbable
+public interface IGrabbable : ILimitedAccess
 {
     public void SetTransform(Vector3? position, int? orientation);
     public bool CanBeMoved { get; }

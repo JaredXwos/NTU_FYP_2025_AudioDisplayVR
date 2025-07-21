@@ -1,1 +1,0 @@
-public class RefreshOnRebirth : RefreshOn<RebirthEventHandler<CoreComponent>, (CoreComponent component, object blank)> { }

@@ -3,7 +3,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(TerrainChunk))]
 [RequireComponent(typeof(ScaleBalance))]
-public class TransferPieceWeightToScale : MonoBehaviour, IHas<FitEventHandler<Piece>>
+public class TransferPieceWeightToScale : MonoBehaviour, IHas<Handler<FitEvent,FitEventPayload>>
 {
     [SerializeField] TerrainChunk chunk;
     [SerializeField] ScaleBalance balance;
@@ -16,15 +16,16 @@ public class TransferPieceWeightToScale : MonoBehaviour, IHas<FitEventHandler<Pi
         body = transform.GetComponentsInChildren<Transform>()
                                        .Select(t => t.gameObject)
                                        .ToArray();
-    }
-
-    FitEventHandler<Piece> IHas<FitEventHandler<Piece>>.Handler => new(
-        ((Piece piece, GameObject gameObject) payload) =>
+        Handler = new(payload =>
         {
-            if (body.Contains(payload.gameObject))
+            if (body.Contains(payload.Collidee))
             {
-                ILoad[] weights = payload.piece.gameObject.GetComponents<ILoad>();
+                ILoad[] weights = payload.Parent.gameObject.GetComponents<ILoad>();
                 balance.RegisterWeight(weights);
             }
-        });
+        }, $"Transfer Piece Weight to Scale on {gameObject.name}");
+    }
+
+    Handler<FitEvent, FitEventPayload> Handler;
+    Handler<FitEvent, FitEventPayload> IHas<Handler<FitEvent, FitEventPayload>>.Handler => Handler;
 }

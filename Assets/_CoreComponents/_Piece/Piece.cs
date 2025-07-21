@@ -2,7 +2,7 @@ using System.Linq;
 using UnityEngine;
 
 
-public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventHandler<Piece>>
+public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<Handler<FitEvent,FitEventPayload>>, ILimitedAccess
 {
     [Header("Stack Configuration")]
     [SerializeField] private int maxGeneratedHeight = 3;
@@ -22,28 +22,15 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     protected readonly Transform[] stackTransforms = new Transform[3];
     protected readonly Renderer[] stackRenderers = new Renderer[3];
 
-    private Volatile<Vector3> piecePosition = new(Vector3.zero);
-    private Volatile<int> pieceOrientation = new(0);
-
-    protected (int x, int z, int bottom)[] PieceBottom =>
-    stackTransforms
-        .Select(t => {
-            Vector3 p = transform.TransformPoint(t.localPosition) + piecePosition.Value - transform.position;
-            return (
-                x: (int) p.x,
-                z: (int) p.z,
-                bottom: (int)(p.y - t.localScale.y) + 1
-            );
-        })
-        .OrderBy(e => e.x)
-        .ThenBy(e => e.z)   
-        .ToArray();
+    private readonly Volatile<Vector3> piecePosition = new(Vector3.zero);
+    private readonly Volatile<int> pieceOrientation = new(0);
 
     #region MonoBehavior
     protected override void Awake()
     {
-        handler = new(
-            ((Piece piece, GameObject gameObject) payload) => {if (payload.piece == this && heightResettable) ResetHeights();},
+        Auth = new(this);
+        Handler = new(
+            (FitEventPayload payload) => {if (payload.Parent == this && heightResettable) ResetHeights();},
             gameObject.name
         );
         base.Awake();
@@ -86,9 +73,17 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     protected virtual void OnDestroy()
     {
         InterfaceRegistry<IPieceCollidable>.Unregister(this);
-        handler.Dispose();
     }
 
+    #endregion
+    
+    #region CoreComponent
+    protected override (string name, System.Func<object> binding)[] Bindings => new (string, System.Func<object>)[]
+    {
+        ("PieceBottom", (System.Func<(int, int, int)[]>) (() => PieceBottom)),
+        ("ComponentTransforms", (System.Func<Transform[]>) (() => stackTransforms)),
+        ("CanBeMovedSetter", () => (System.Action<bool>)(value => CanBeMoved = value)),
+    };
     #endregion
 
     #region IPieceCollidable
@@ -100,10 +95,7 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
             collider.bottom < transform.position.y
         ));
 
-    public void SetPieceCollisionEnabled(bool isEnabled)
-    {
-        pieceCollisionEnabled = isEnabled;
-    }
+    public void SetPieceCollisionEnabled(bool isEnabled) => pieceCollisionEnabled = isEnabled;
     #endregion
 
     #region IGrabbable
@@ -117,6 +109,31 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
     public int Orientation => pieceOrientation.Value;
     public Vector3 Position => piecePosition.Value;
     #endregion
+    
+    #region IHasHandler
+    Handler<FitEvent, FitEventPayload> Handler;
+    Handler<FitEvent, FitEventPayload> IHas<Handler<FitEvent, FitEventPayload>>.Handler => Handler;
+    #endregion
+
+    #region LimitedAccess
+    Auth Auth;
+    Auth ILimitedAccess.Auth => Auth;
+    void ILimitedAccess.Authenticate() => Auth.Authenticate();
+    #endregion
+
+    protected (int x, int z, int bottom)[] PieceBottom =>
+        stackTransforms
+            .Select(t => {
+                Vector3 p = transform.TransformPoint(t.localPosition) + piecePosition.Value - transform.position;
+                return (
+                    x: (int)p.x,
+                    z: (int)p.z,
+                    bottom: (int)(p.y - t.localScale.y + 1)
+                );
+            })
+            .OrderBy(e => e.x)
+            .ThenBy(e => e.z)
+            .ToArray();
 
     public void ResetHeights(Vector3Int Heights = default)
     {
@@ -136,16 +153,8 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<FitEventH
 
     public void SetCanBeMoved(object Key, bool canBeMoved)
     {
-        Verify(Key);
+        Auth.Verify(Key);
         CanBeMoved = canBeMoved;
     }
 
-    protected override (string name, System.Func<object> binding)[] Bindings => new (string, System.Func<object>)[]
-    {
-        ("PieceBottom", (System.Func<(int, int, int)[]>) (() => PieceBottom)),
-        ("ComponentTransforms", (System.Func<Transform[]>) (() => stackTransforms)),
-        ("CanBeMovedSetter", () => (System.Action<bool>)(value => CanBeMoved = value)),
-    };
-    FitEventHandler<Piece> handler;
-    FitEventHandler<Piece> IHas<FitEventHandler<Piece>>.Handler => handler;
 }

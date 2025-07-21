@@ -6,6 +6,9 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public abstract class AudioGenerator : MonoBehaviour
 {
+
+    public bool IsPlaying;
+
     [Header("Read Only display settings")]
     // ----------------------------------------------------------------------
 
@@ -40,6 +43,7 @@ public abstract class AudioGenerator : MonoBehaviour
     // ----------------------------------------------------------------------
     private CancellationTokenSource tokenSource;  // This is to send the suicide instruction
     protected CancellationToken token;            // This is to receive the suicide instruction
+    private Task backgroundbufferrefresh;
 
     #region MonoBehavior
     protected virtual void Awake()
@@ -60,7 +64,7 @@ public abstract class AudioGenerator : MonoBehaviour
         }
         tokenSource = new();
         token = tokenSource.Token;
-        Task.Run(BackgroundBufferRefresh);
+        backgroundbufferrefresh = Task.Run(BackgroundBufferRefresh);
     }
 
     protected virtual void Update() => Read = read;
@@ -83,13 +87,13 @@ public abstract class AudioGenerator : MonoBehaviour
     protected virtual void OnDestroy()
     {
         tokenSource.Cancel();
+        backgroundbufferrefresh?.Wait();
         foreach (NativeArray<float>[] output in outputBuffers)
             foreach (NativeArray<float> buffer in output)
                 buffer.Dispose();
+        tokenSource.Dispose();
     }
     #endregion
-
-    public bool IsPlaying { private get; set; }
 
     protected abstract void BackgroundBufferRefresh();
 }

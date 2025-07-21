@@ -146,24 +146,24 @@ public class Broadcast : MonoBehaviour
             binauralBufferRefreshHandle = new SpatializeAddJob
             {
                 input = toneUtil.MainBuffer,
-                shiftL = 0,
-                shiftR = 0,
-                gainL = 1,
-                gainR = 1,
-                centerGain = 1,
+                // shiftL = 0,
+                // shiftR = 0,
+                // gainL = 1,
+                // gainR = 1,
+                // centerGain = 1,
                 outputLeft = leftChannel[writableIndex],
                 outputRight = rightChannel[writableIndex],
             }.Schedule(toneUtil.MainBuffer.Length, 64,
                 new SpatializeAddJob
             {
                 input = toneUtil.WhiteBuffer,
-                shiftL = sparamsRef.Value.shiftL,
-                shiftR = sparamsRef.Value.shiftR,
-                gainL = sparamsRef.Value.gainL,
-                gainR = sparamsRef.Value.gainR,
-                centerGain = sparamsRef.Value.centerGain,
-                outputLeft = leftChannel[writableIndex],
-                outputRight = rightChannel[writableIndex],
+                    // shiftL = sparamsRef.Value.shiftL,
+                    // shiftR = sparamsRef.Value.shiftR,
+                    //  gainL = sparamsRef.Value.gainL,
+                    //  gainR = sparamsRef.Value.gainR,
+                    // centerGain = sparamsRef.Value.centerGain,
+                    outputLeft = leftChannel[writableIndex],
+                    outputRight = rightChannel[writableIndex],
             }.Schedule(toneUtil.WhiteBuffer.Length, 64, JobHandle.CombineDependencies(
                 new CreateSpatialisationParamsJob
                 {

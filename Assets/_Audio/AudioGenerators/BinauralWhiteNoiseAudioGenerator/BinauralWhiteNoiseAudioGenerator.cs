@@ -2,7 +2,6 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Windows;
 
 public interface IBinauralWhiteNoiseAGII
 {
@@ -61,32 +60,56 @@ public class BinauralWhiteNoiseAudioGenerator : AudioGenerator
             for (int j = 0; j < randomRings[i].Length; j++)
                 randomRings[i][j] = new Unity.Mathematics.Random(seeder.NextUInt() + 1);
         }
-
-        while (!token.IsCancellationRequested)
+        try
         {
-            if (job.IsCompleted)
+            while (!token.IsCancellationRequested)
             {
-                job.Complete();
-                for (int i = 0; i < outputBuffers[writeable].Length; i++)
-                    for (int j = 0; j < outputBuffers[writeable][i].Length; j++)
-                        outputBuffers[writeable][i][j] = whiteBuffer[j];
-
-                lastWritenBufferIndex = writeable;
-                writeable = 0;
-                while (writeable == readBufferIndex || writeable == lastWritenBufferIndex) writeable++;
-
-                job = new GenerateRandomToneJob
+                if (job.IsCompleted)
                 {
-                    maxAmplitude = 0.5f,
-                    randoms = randomRings[currentRandomBuffer++],
-                    samples = whiteBuffer
-                }.Schedule(whiteBuffer.Length, 64);
-                if (currentRandomBuffer >= randomRings.Length) currentRandomBuffer = 0;
-            }
-            sourcePosition = inputInterface.RelativeSourcePosition * tiltSensitivity;
-        }
+                    job.Complete();
+                    lastWritenBufferIndex = writeable;
+                    writeable = 0;
+                    while (writeable == readBufferIndex || writeable == lastWritenBufferIndex) writeable++;
 
-        whiteBuffer.Dispose();
-        foreach(NativeArray<Unity.Mathematics.Random> buffer in randomRings) buffer.Dispose();
+
+                    outputBuffers[writeable][0].AsSpan().Clear();
+                    outputBuffers[writeable][1].AsSpan().Clear();
+
+                    JobHandle Tonejob = new GenerateRandomToneJob
+                    {
+                        maxAmplitude = 0.1f,
+                        randoms = randomRings[currentRandomBuffer++],
+                        samples = whiteBuffer
+                    }.Schedule(whiteBuffer.Length, 64);
+
+                    JobHandle SpatializeParametersJob = new CreateSpatialisationParamsJob
+                    {
+                        rightEar = earDistance,
+                        source = inputInterface.RelativeSourcePosition * tiltSensitivity,
+                        speedOfSound = 343.0f,
+                        sampleRate = sampleRate,
+                        centreAttenuationFactor = centreAttenuationFactor,
+                        Params = sparams
+                    }.Schedule();
+
+                    job = new SpatializeAddJob
+                    {
+                        input = whiteBuffer,
+                        Params = sparams,
+                        outputLeft = outputBuffers[writeable][0],
+                        outputRight = outputBuffers[writeable][1],
+                    }.Schedule(whiteBuffer.Length, 64, JobHandle.CombineDependencies(Tonejob, SpatializeParametersJob));
+
+                    if (currentRandomBuffer >= randomRings.Length) currentRandomBuffer = 0;
+                }
+            }
+        }
+        finally
+        {
+            job.Complete();
+            whiteBuffer.Dispose();
+            sparams.Dispose();
+            foreach (NativeArray<Unity.Mathematics.Random> buffer in randomRings) buffer.Dispose();
+        }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using UnityEngine;
@@ -16,9 +17,10 @@ public abstract class Dispatch : MonoBehaviour
     // SUBCLASS DEFINED TYPES
     // -----------------------------------------------------------------------------------
     // The main handler type this dispatcher accepts, defined by subclass
-    public abstract Type HandlerType { get; protected set; }
+    public Type HandlerType => typeof(Handler<,>).MakeGenericType(EventType, PayloadType);
+    protected Type EventType { get; set; }
     // The type of payload this dispatcher will pass to handlers, defined by subclass
-    protected abstract Type PayloadType { get; set; }
+    protected Type PayloadType { get; set; }
 
     // LAMBDA CONSTRUCTION
     // -----------------------------------------------------------------------------------
@@ -31,10 +33,6 @@ public abstract class Dispatch : MonoBehaviour
 
     protected virtual void Awake()
     {
-        if(!
-            typeof(Handler<>).MakeGenericType(PayloadType)
-            .IsAssignableFrom(HandlerType))
-            throw new InvalidOperationException($"Handler type {HandlerType} is not compatible with Handler<{PayloadType}>");
         compatibleHandlerTypes = Check.GetCompatibleTypes(HandlerType);
         lambdaParameter = Expression.Convert(lambdaArgument, PayloadType);
     }
@@ -55,7 +53,7 @@ public abstract class Dispatch : MonoBehaviour
         if (!PayloadType.IsInstanceOfType(payload))
             throw new InvalidCastException($"[Dispatch::{GetType().Name}] Expected payload of type {PayloadType}, but got {payload?.GetType()}");
 
-        foreach (var (handler, action) in invokes)
+        foreach (var (handler, action) in invokes.ToArray())
         {
             if (handler is UnityEngine.Object uo && !uo)
                 continue;
@@ -131,13 +129,16 @@ public abstract class Dispatch : MonoBehaviour
     {
 
         List<object> compatibleHandlers = new();
+        if (compatibleHandlerTypes == null || compatibleHandlerTypes.Count <= 0) return;
         foreach (Type handlerType in compatibleHandlerTypes)
         {
-
-            IReadOnlyCollection<object> classHandlers = (IReadOnlyCollection<object>) typeof(InterfaceRegistry<>)
+            if (handlerType == null) continue;
+            PropertyInfo property = typeof(InterfaceRegistry<>)
                 .MakeGenericType(handlerType)
-                .GetProperty("All", BindingFlags.Public | BindingFlags.Static)
-                .GetValue(null);
+                .GetProperty("All", BindingFlags.Public | BindingFlags.Static);
+
+            if (property == null) continue;
+            IReadOnlyCollection<object> classHandlers = (IReadOnlyCollection<object>) property.GetValue(null);
 
             foreach (var handler in classHandlers)
                 compatibleHandlers.Add(handler);
