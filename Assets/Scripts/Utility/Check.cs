@@ -162,12 +162,11 @@ public static class Check
         }
 
         // --- BASE TYPE ---
-        if (type.BaseType != null && type.BaseType != typeof(object))
             result.UnionWith(GetCompatibleTypes(type.BaseType));
 
         // --- INTERFACES ---
         foreach (var i in type.GetInterfaces())
-            if (i != null && i != type)
+            if (i != type)
                 result.UnionWith(GetCompatibleTypes(i));
             
         SubsetTypes[type] = result;
