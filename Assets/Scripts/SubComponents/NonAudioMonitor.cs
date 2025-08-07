@@ -5,7 +5,7 @@ public class NonAudioMonitor : MonoBehaviour, IHas<EventHandler<GrabEvent, IPPar
 {
     protected float Weight;
     protected float Tilt;
-    [SerializeField] protected ScaleBalance ScaleBalance;
+    [SerializeField] protected ScaleBalance_Deprecated ScaleBalance;
     [SerializeField] protected TextMeshProUGUI TextMesh;
 
     private void Awake()
@@ -18,7 +18,7 @@ public class NonAudioMonitor : MonoBehaviour, IHas<EventHandler<GrabEvent, IPPar
             },
             "NonAudioMonitor"
         );
-        Check.PropertyEnabledElseAssign<ScaleBalance>(this, "ScaleBalance");
+        Check.PropertyEnabledElseAssign<ScaleBalance_Deprecated>(this, "ScaleBalance");
         Check.PropertyEnabledElseAssign<TextMeshProUGUI>(this, "TextMesh");
     }
     protected virtual void FixedUpdate()

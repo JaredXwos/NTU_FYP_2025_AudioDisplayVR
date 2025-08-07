@@ -9,14 +9,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3192591683910855384}
-  - component: {fileID: 1208500809083869553}
+  - component: {fileID: 110530334758569758}
   - component: {fileID: 5288973384732523517}
   - component: {fileID: -8030791187058063222}
   - component: {fileID: 4539234416127470109}
   - component: {fileID: 6634089420633657331}
-  - component: {fileID: -8026677298091338059}
   - component: {fileID: -7323178116494516428}
-  - component: {fileID: 5892186596479499683}
+  - component: {fileID: 5557237306548693367}
   - component: {fileID: 1358537328320074107}
   - component: {fileID: -8418283433598683979}
   - component: {fileID: 3338152078829405865}
@@ -43,7 +42,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1208500809083869553
+--- !u!114 &110530334758569758
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -52,17 +51,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 929320378857853068}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7bb22b3ff900564eab99b11a9690c13, type: 3}
+  m_Script: {fileID: 11500000, guid: 0139581eab9ccd8488f4cd48c655f8ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sharedMaterial: {fileID: 2100000, guid: bc6a9bc4cbc10a84e92c8123629e2e63, type: 2}
   maxGeneratedHeight: 3
   minGeneratedHeight: 1
-  heightResettable: 0
-  stackHeights: {x: 1, y: 1, z: 1}
-  pieceCollisionEnabled: 0
+  heightResettable: 1
+  stackHeights: {x: 0, y: 0, z: 0}
   illegal: 0
-  collisions: []
-  bottomHeights: 
+  collidee: []
+  canBeMoved: 0
 --- !u!114 &5288973384732523517
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,19 +117,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   listeners: []
   Parent: {fileID: 0}
---- !u!114 &-8026677298091338059
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 929320378857853068}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e21e6422f85ccb2409febc87da8afd23, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  activeCoreComponent: {fileID: 0}
 --- !u!114 &-7323178116494516428
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -144,7 +130,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   activeCoreComponent: {fileID: 0}
---- !u!114 &5892186596479499683
+--- !u!114 &5557237306548693367
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -153,12 +139,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 929320378857853068}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7b26ad83355dcc446855b6cdbc160851, type: 3}
+  m_Script: {fileID: 11500000, guid: 7d367bacf1ab62d45b20a9a2d2f86c85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   listeners: []
-  groundClearance: ffffffffffffffffffffffff
+  direction: {x: 0, y: -1, z: 0}
+  maxDistance: 10
   broadcastFitEvent: 1
+  Clearance: ffffffffffffffffffffffff
+  Valid: 1
   isCurrentlyFit: 0
 --- !u!114 &1358537328320074107
 MonoBehaviour:
@@ -190,7 +179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d726b9e9a2ca57140bed6f2b66539b15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  IsPlaying: 1
+  IsPlaying: 0
   Read: 0
   sampleRate: 0
   bufferTotalLength: 0
@@ -212,7 +201,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c6ad6048cc8efce4c8f93e878080b161, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GroundSonar: {fileID: 0}
+  Sonar: {fileID: 0}
   _noteIndex:
     Index: 
     Validity: 0

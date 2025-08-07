@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public record EventRecord(Type EventType, Type PayloadType, float Timestamp);
-public class EveryEventLogger : EventManager
+public class EveryEventLogger : EventManager, ILogCreator
 {
     [SerializeField] private string LogName = string.Empty;
     private readonly List<EventRecord> Log = new();
@@ -16,4 +16,6 @@ public class EveryEventLogger : EventManager
         base.OnDestroy();
         ExportData.WriteToFile($"{LogName} Event Log.csv", ExportData.ToCSV(Log));
     }
+
+    public void SetLogName(string name) => LogName = name;
 }

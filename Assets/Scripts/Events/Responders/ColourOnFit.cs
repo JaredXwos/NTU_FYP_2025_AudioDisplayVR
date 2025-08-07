@@ -1,0 +1,1 @@
+public class ColourOnFit : ColourAndUncolourOn<FitEvent, FitEventPayload> { }

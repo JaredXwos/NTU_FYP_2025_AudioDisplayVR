@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class GroundClearanceWeightFCAGII : MonoBehaviour, INoteIndexInput, IFrequencyInput
 {
-    [SerializeField] private GroundSonar GroundSonar;
+    [SerializeField] private Sonar Sonar;
     private ILoad Weight;
 
     [SerializeField, ReadOnly] private NoteIndex _noteIndex = new();
@@ -21,7 +21,7 @@ public class GroundClearanceWeightFCAGII : MonoBehaviour, INoteIndexInput, IFreq
     private void Awake()
     {
         if (
-            !Check.PropertyEnabledElseAssign<GroundSonar>(this, "GroundSonar") ||
+            !Check.PropertyEnabledElseAssign<Sonar>(this, "Sonar") ||
             !Check.PropertyEnabledElseAssign<ILoad>(this, "Weight")
         )
         {
@@ -40,15 +40,16 @@ public class GroundClearanceWeightFCAGII : MonoBehaviour, INoteIndexInput, IFreq
 
     private void UpdateNoteIndex()
     {
-        int[] selection = GroundSonar.GetGroundClearance();
-        _noteIndex.Validity = !selection.Any(x => x < 0);
+        int[] selection;
+        (selection, _noteIndex.Validity) = Sonar.GetClearance();
         _noteIndex.Index = selection.Distinct().Count() > 2 ?
-            selection.Select(v => selection.Count(x => x < v)).ToArray() : // if there are three distinct values, assign 0, 1, 2 largest to smallest
-            selection.Select(v =>                                          // if there are less than 2 distinct values
-                v == selection.Max() ? 0 :                                 // assign all largest values 0
-                v > selection.Max() - 1 ? 2 :                              // else if the value deviates from the largest by more than 2 or more, clip it to 2
-                v - selection.Min()
-            ).ToArray();
+            selection                                   // if there are three distinct values,
+            .Select(v => selection.Count(x => x < v))   // assign 0, 1, 2 largest to smallest
+            .ToArray() : 
+            selection                                   // else (1 or 2 distinct values
+            .Select(v => selection.Max() - v)           // each value is the distance from max,
+            .Select(v => v > 2? 2 : v)                  // clipped at 2
+            .ToArray();
         noteIndex.Value = _noteIndex;
     }
 

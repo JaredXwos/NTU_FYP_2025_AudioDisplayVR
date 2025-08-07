@@ -1,8 +1,8 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-
-public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<EventHandler<FitEvent,FitEventPayload>>, ILimitedAccess
+public class Piece : CollidingComponent, IGrabbable, IHas<EventHandler<FitEvent, IPParentCoreComponent>>, ILimitedAccess, IColourable
 {
     [Header("Stack Configuration")]
     [SerializeField] private int maxGeneratedHeight = 3;
@@ -13,105 +13,88 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<EventHand
     [SerializeField] private Vector3Int stackHeights = Vector3Int.zero;
 
     [Header("Collision Information")]
-    [SerializeField] private bool pieceCollisionEnabled = true;
     [Tooltip("Legality of target transform. Actual transform defaults to last legal transform.")]
     [SerializeField] private volatile bool illegal;
-    [SerializeField] private GameObject[] collisions;
-    [SerializeField] private int[] bottomHeights;
+    [SerializeField] private string[] collidee;
 
-    protected readonly Transform[] stackTransforms = new Transform[3];
-    protected readonly Renderer[] stackRenderers = new Renderer[3];
+    [SerializeField] private bool canBeMoved;
 
-    private readonly Volatile<Vector3> piecePosition = new(Vector3.zero);
+    private readonly Volatile<Vector3Int> piecePosition = new(Vector3Int.zero);
     private readonly Volatile<int> pieceOrientation = new(0);
 
     #region MonoBehavior
     protected override void Awake()
     {
+        CanBeMoved = true;
         Auth = new(this);
         Handler = new(
-            (FitEventPayload payload) => {if (payload.Parent == this && heightResettable) ResetHeights();},
+            (IPParentCoreComponent payload) => { if (payload.Parent == this && heightResettable) ResetHeights(); },
             gameObject.name
         );
+        piecePosition.Value = Vector3Int.RoundToInt(transform.position);
+        if(stackHeights == Vector3Int.zero)
+            ResetHeights();
+        else ResetHeights(stackHeights);
         base.Awake();
-        InterfaceRegistry<IPieceCollidable>.Register(this);
-        piecePosition.Value = transform.position;
-
-        foreach (Transform child in transform) Destroy(child.gameObject);
-        for (int i = 0; i < 3; i++)
-        {
-            // Create the cube primitive
-            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-
-            // Parent it under this Piece
-            cube.transform.parent = transform;
-
-            // Position it in X spaced apart, and start at Y=0, Z=0
-            cube.transform.localPosition = new(i - 1, 0, 0); // positions: -1,0,1 on X
-
-            // Get the references
-            stackTransforms[i] = cube.transform;
-            stackRenderers[i] = cube.GetComponent<Renderer>();
-        }
-        ResetHeights(stackHeights);
-        CanBeMoved = true;
     }
     protected virtual void Update()
     {
-        bottomHeights = PieceBottom.Select(t => t.bottom).ToArray();
-        collisions = InterfaceRegistry<IPieceCollidable>.All
-            .Where(t => (Object)t != this && t.IsCollidedWithPiece(PieceBottom))
-            .Select(t => ((MonoBehaviour)t).gameObject)
-            .ToArray();
-        illegal = collisions.Any();
-        if (illegal) return;
-
-        transform.eulerAngles = new(0f, (pieceOrientation.Value * 90) % 360, 0f);
+        canBeMoved = CanBeMoved;
+        if (World.CheckCollision(targetBody, out Dictionary<Vector3Int, CoreComponent> collided))
+            collidee = collided.Select(c => c.Value.name).ToHashSet().ToArray();
+        illegal = !AttemptUpdate();
         transform.position = piecePosition.Value;
+        Render();
     }
-    protected virtual void OnDestroy()
-    {
-        InterfaceRegistry<IPieceCollidable>.Unregister(this);
-    }
-
-    #endregion
-    
-    #region CoreComponent
-    protected override (string name, System.Func<object> binding)[] Bindings => new (string, System.Func<object>)[]
-    {
-        ("PieceBottom", (System.Func<(int, int, int)[]>) (() => PieceBottom)),
-        ("ComponentTransforms", (System.Func<Transform[]>) (() => stackTransforms)),
-        ("CanBeMovedSetter", () => (System.Action<bool>)(value => CanBeMoved = value)),
-    };
-    #endregion
-
-    #region IPieceCollidable
-    public bool IsCollidedWithPiece((int x, int z, int bottom)[] pieceBottoms) =>
-        enabled &&
-        stackTransforms.Any(t => t.localScale.y > 0) && pieceCollisionEnabled &&
-        pieceBottoms.Any(collider => PieceBottom.Any(collidee =>
-            collider.x == collidee.x && collider.z == collidee.z &&
-            collider.bottom < transform.position.y
-        ));
-
-    public void SetPieceCollisionEnabled(bool isEnabled) => pieceCollisionEnabled = isEnabled;
     #endregion
 
     #region IGrabbable
-    public void SetTransform(Vector3? position, int? orientation)
-    {
-        if (!CanBeMoved) return;
-        if (position.HasValue) piecePosition.Value = position.Value;
-        if (orientation.HasValue) pieceOrientation.Value = orientation.Value;
-    }
     public bool CanBeMoved { get; private set; }
     public int Orientation => pieceOrientation.Value;
     public Vector3 Position => piecePosition.Value;
+    public void SetTransform(Vector3? position, int? orientation)
+    {
+        if (!CanBeMoved) return;
+
+        Vector3Int pos = Vector3Int.RoundToInt(position ?? piecePosition.Value);
+        int rot = orientation ?? pieceOrientation.Value;
+
+        targetBody = targetBody
+            .Select(t => t - piecePosition.Value)
+            .Select(v =>
+            (((pieceOrientation.Value % 4) + 4) % 4) switch
+            {
+                0 => v,
+                1 => RotateY90CCW(v),
+                2 => RotateY180(v),
+                3 => RotateY90CW(v),
+                _ => throw new System.ArgumentOutOfRangeException()
+            })
+            .Select(v =>
+            (((rot % 4) + 4) % 4) switch
+            {
+                0 => v,
+                1 => RotateY90CW(v),
+                2 => RotateY180(v),
+                3 => RotateY90CCW(v),
+                _ => throw new System.ArgumentOutOfRangeException()
+            })
+            .Select(t => t + pos)
+            .ToHashSet();
+
+        piecePosition.Value = pos;
+        pieceOrientation.Value = rot;
+    }
+    public void SetCanBeMoved(object Key, bool canBeMoved)
+    {
+        Auth.Verify(Key);
+        CanBeMoved = canBeMoved;
+    }
     #endregion
-    
+
     #region IHasHandler
-    EventHandler<FitEvent, FitEventPayload> Handler;
-    EventHandler<FitEvent, FitEventPayload> IHas<EventHandler<FitEvent, FitEventPayload>>.Handler => Handler;
+    EventHandler<FitEvent, IPParentCoreComponent> Handler;
+    EventHandler<FitEvent, IPParentCoreComponent> IHas<EventHandler<FitEvent, IPParentCoreComponent>>.Handler => Handler;
     #endregion
 
     #region LimitedAccess
@@ -120,40 +103,39 @@ public class Piece : CoreComponent, IPieceCollidable, IGrabbable, IHas<EventHand
     void ILimitedAccess.Authenticate() => Auth.Authenticate();
     #endregion
 
-    protected (int x, int z, int bottom)[] PieceBottom =>
-        stackTransforms
-            .Select(t => {
-                Vector3 p = transform.TransformPoint(t.localPosition) + piecePosition.Value - transform.position;
-                return (
-                    x: (int)p.x,
-                    z: (int)p.z,
-                    bottom: (int)(p.y - t.localScale.y + 1)
-                );
-            })
-            .OrderBy(e => e.x)
-            .ThenBy(e => e.z)
-            .ToArray();
+    #region CoreComponent
+    protected override (string name, System.Func<object> binding)[] Bindings => new (string name, System.Func<object> binding)[0];
+    #endregion
 
     public void ResetHeights(Vector3Int Heights = default)
     {
-        int[] heights = Heights == Vector3.zero?
-            Enumerable.Range(0, 3)
+        // Use Vector3Int.zero for correct type comparison
+        int[] heights = Heights == Vector3Int.zero
+            ? Enumerable.Range(0, 3)
                 .Select(_ => Random.Range(minGeneratedHeight, maxGeneratedHeight + 1))
-                .ToArray() :
-            new int[] {Heights.x, Heights.y, Heights.z};
+                .ToArray()
+            : new int[] { Heights.x, Heights.y, Heights.z };
 
-        for(int i = 0; i < 3; i++)
+        stackHeights = new(heights[0], heights[1], heights[2]);
+
+        targetBody.Clear();
+        for (int index = 0; index < 3; index++)
         {
-            stackTransforms[i].localScale    = new Vector3(1, heights[i], 1);
-            stackTransforms[i].localPosition = new Vector3(stackTransforms[i].localPosition.x, -heights[i] / 2f, stackTransforms[i].localPosition.z);
+            int x = index - 1;
+            int h = heights[index];
+            for (int y = 0; y > -h; y--)
+                targetBody.Add(new Vector3Int(x, y, 0) + Vector3Int.RoundToInt(piecePosition.Value));
         }
+
         stackHeights = new Vector3Int(heights[0], heights[1], heights[2]);
     }
-
-    public void SetCanBeMoved(object Key, bool canBeMoved)
+    public void SetMaterialColor(Color color, object key)
     {
-        Auth.Verify(Key);
-        CanBeMoved = canBeMoved;
+        Auth.Verify(key);
+        if (Material != null)
+            Material.color = color;
     }
 
+    public Color GetMaterialColor() => (Material??sharedMaterial).color;
+    
 }

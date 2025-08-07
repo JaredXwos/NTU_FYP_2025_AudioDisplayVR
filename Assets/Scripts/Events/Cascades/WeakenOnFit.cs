@@ -1,4 +1,4 @@
 using UnityEngine;
 
 [RequireComponent (typeof(CoreComponent))]
-public class WeakenOnFit : WeakenOn<FitEvent,FitEventPayload> { }
+public class WeakenOnFit : WeakenOn<FitEvent,IPParentCoreComponent> { }

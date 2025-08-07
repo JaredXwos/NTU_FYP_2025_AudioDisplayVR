@@ -1,57 +1,28 @@
 using System;
-using System.Linq;
 using UnityEngine;
 
-public class TerrainChunk : CoreComponent, IPieceCollidable
+public class TerrainChunk : CollidingComponent
 {
     [Header("Terrain Data")]
     [Tooltip("Scriptable Object that defines the terrain heights.")]
-    [SerializeField] private TerrainDataSO terrainData;
+    [SerializeField] private TerrainDataSO data;
 
-    [Header("Cube Appearance")]
-    [SerializeField] private Material cubeMaterial;
-
-    [SerializeField] private bool pieceCollisionEnabled = true;
-
-    protected override (string name, Func<object> binding)[] Bindings => Array.Empty<(string, Func<object>)>();
-
-    #region MonoBehavior
     protected override void Awake()
     {
         base.Awake();
-        if (terrainData == null)
-            Debug.LogError($"[TerrainChunk] Missing TerrainDataSO on {gameObject.name}.");
-        else InterfaceRegistry<IPieceCollidable>.Register(this);
+        if (data == null)
+            Debug.LogError($"[TerrainChunk_] Missing TerrainDataSO on {gameObject.name}.");
 
-        for (int x = 0; x < terrainData.Length; x++) for (int z = 0; z < terrainData.Width; z++)
-        {
-            float cubeHeight = terrainData.GetHeightAt(x, z);
-
-            // Create a built-in Unity cube
-            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-
-            // Parent under this TerrainChunk GameObject
-            cube.transform.parent = transform;
-
-            // Scale and position
-            cube.transform.localScale = new Vector3(1, cubeHeight, 1);
-            cube.transform.localPosition = new Vector3(x, cubeHeight / 2f, z);
-
-            // Assign the chosen material
-            if (cubeMaterial != null && cube.TryGetComponent<Renderer>(out var renderer)) renderer.material = cubeMaterial;
-        }
+        targetBody.Clear();
+        for (int x = 0; x < data.Length; x++)
+            for (int z = 0; z < data.Width; z++)
+                for (int y = 0; y < Mathf.RoundToInt(data.GetHeightAt(x, z)); y++)
+                    targetBody.Add(new Vector3Int(x, y, z) + Vector3Int.RoundToInt(transform.position));
+                
+        World.TryRegister(targetBody, this);
+        AttemptUpdate();
     }
-    #endregion
+    protected virtual void Update() => Render();
 
-    #region IPieceCollidable
-    public bool IsCollidedWithPiece((int x, int z, int bottom)[] pieceBottoms){
-        return terrainData != null && pieceCollisionEnabled &&
-        pieceBottoms.Any(stack =>
-            stack.bottom <
-                terrainData.GetHeightAt(stack.x, stack.z)
-        );
-    }
-    
-    public void SetPieceCollisionEnabled(bool isEnabled) => pieceCollisionEnabled = isEnabled;
-    #endregion
+    protected override (string name, Func<object> binding)[] Bindings => new (string name, Func<object> binding)[0];
 }

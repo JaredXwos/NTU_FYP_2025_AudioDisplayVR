@@ -3,33 +3,41 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class CollidingComponent : CoreComponent
+public abstract class CollidingComponent : CoreComponent
 {
     private static Mesh cubeMesh;
-    [SerializeField] protected Material cubeMaterial;
+    [SerializeField] protected Material sharedMaterial;
+    protected Material Material;
 
     private readonly Volatile<Matrix4x4[][]> body = new();
+    protected Volatile<HashSet<Vector3Int>> Body = new(new());
     protected HashSet<Vector3Int> targetBody = new();
 
     #region Monobehaviour
     protected override void Awake()
     {
         base.Awake();
-        GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        cubeMesh = temp.GetComponent<MeshFilter>().sharedMesh;
-        Destroy(temp);
+        if (cubeMesh == null)
+        {
+            GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cubeMesh = temp.GetComponent<MeshFilter>().sharedMesh;
+            Destroy(temp);
+        }
+        Material = new Material(sharedMaterial);
+        World.TryRegister(targetBody, this);
+        Body.Value = targetBody;
     }
+    protected virtual void OnDestroy() => World.ForceDeregister(this);
     #endregion
 
-    #region CoreComponent
-    protected override (string name, Func<object> binding)[] Bindings => new (string name, Func<object> binding)[0];
-    #endregion
-
-    protected bool AttemptUpdate()
+    public bool AttemptUpdate()
     {
-        if (World.CheckCollision(targetBody)) return false;
+        if (
+            World.CheckCollision(targetBody, out Dictionary<Vector3Int, CoreComponent> collided) &&
+            collided.Any(c => c.Value != this)
+        ) return false;
 
-        World.TryDeregister(targetBody, this);
+        World.ForceDeregister(this);
         World.TryRegister(targetBody, this);
 
         Matrix4x4[] allMatrices = targetBody
@@ -48,15 +56,16 @@ public class CollidingComponent : CoreComponent
         }
 
         body.Value = batches;
+        Body.Value = targetBody;
         return true;
     }
 
     protected void Render()
     {
         foreach(Matrix4x4[] batch in body.Value)
-            Graphics.DrawMeshInstanced(cubeMesh, 0, cubeMaterial, batch);
+            Graphics.DrawMeshInstanced(cubeMesh, 0, Material, batch);
     }
-    
+    public HashSet<Vector3Int> GetBody() => Body.Value;
 
     public static Vector3Int RotateX90CW(Vector3Int v) => new(v.x, -v.z, v.y);
     public static Vector3Int RotateX180(Vector3Int v) => new(v.x, -v.y, -v.z);

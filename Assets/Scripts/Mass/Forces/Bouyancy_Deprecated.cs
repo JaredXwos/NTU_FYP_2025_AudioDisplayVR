@@ -15,8 +15,8 @@ using UnityEngine;
 /// The plane perpedicular to the axis of rotation is called the median symmetry plane, and cuts the spherical wedge neatly into quarters.
 /// 
 /// </summary>
-[RequireComponent(typeof(ScaleBalance))]
-public class Bouyancy : MonoBehaviour, ILoad
+[RequireComponent(typeof(ScaleBalance_Deprecated))]
+public class Bouyancy_Deprecated : MonoBehaviour, ILoad
 {
     [SerializeField] private float weightPerUnitCubeFluid;
     [SerializeField, ReadOnly] private float radius;
@@ -25,14 +25,14 @@ public class Bouyancy : MonoBehaviour, ILoad
     [SerializeField, ReadOnly] private float BuoyantForceMagnitude;
     [SerializeField, ReadOnly] private float MaximalApplicableTorque;
 
-    private ScaleBalance scale;
+    private ScaleBalance_Deprecated scale;
     private readonly Volatile<float> buoyantForceMagnitude = new(0);
     private readonly Volatile<Vector3> centreOfBuoyancy = new(Vector3.zero);
 
     #region MonoBehaviour
     private void Awake()
     {
-        scale = GetComponent<ScaleBalance>();
+        scale = GetComponent<ScaleBalance_Deprecated>();
         scale.RegisterWeight(this);
         
     }

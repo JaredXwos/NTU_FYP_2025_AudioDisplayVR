@@ -1,13 +1,12 @@
 using UnityEngine;
 
-[RequireComponent (typeof(ScaleBalance))]
 public class ScaleBalanceAngularDisplacementBWNAGII : MonoBehaviour, IBinauralWhiteNoiseAGII
 {
-    [SerializeField] private ScaleBalance scaleBalance;
+    [SerializeField] private IHasOrientation scaleBalance;
 
     private void Awake()
     {
-        if(!Check.PropertyEnabledElseAssign<ScaleBalance>(this, "scaleBalance")) return;
+        if(!Check.PropertyEnabledElseAssign<IHasOrientation>(this, "scaleBalance")) return;
     }
 
     public Vector2 RelativeSourcePosition

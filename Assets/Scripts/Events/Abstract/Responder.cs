@@ -1,5 +1,5 @@
 using System;
-using System.Runtime.CompilerServices;
+using System.Linq;
 using UnityEngine;
 
 public abstract class EventResponder<EVENT, PAYLOAD> : MonoBehaviour, IHas<EventHandler<EVENT, PAYLOAD>>
@@ -56,6 +56,7 @@ public class ReconstructOn<EVENT, PAYLOAD> : ParentAwareEventResponder<EVENT, PA
             Debug.Log($"[Respawn] Activated template {savedTemplate.name} at {savedTemplate.transform.position}");
             foreach (Collider c in savedTemplate.GetComponentsInChildren<Collider>()) c.enabled = true;
             foreach (MonoBehaviour m in savedTemplate.GetComponentsInChildren<MonoBehaviour>()) m.enabled = true;
+            foreach (CollidingComponent c in  savedTemplate.GetComponentsInChildren<CollidingComponent>()) c.AttemptUpdate();
             savedTemplate.layer = LayerMask.NameToLayer("Default");
             savedTemplate.SetActive(true);
         }
@@ -71,6 +72,52 @@ public abstract class AddMonoBehaviourOn<EVENT, PAYLOAD, COMPONENT> : ParentAwar
         {
             gameObject.AddComponent<COMPONENT>();
             if (SingleUse) Destroy(this);
+        }
+    }
+}
+
+public abstract class AddAndRemoveWeightOn<EVENT, PAYLOAD> : EventResponder<EVENT, PAYLOAD> where PAYLOAD : IPParentCoreComponent, IPActive
+{
+    [SerializeField] protected AbstractScaleBalance Balance;
+    protected override void Awake()
+    {
+        Check.PropertyEnabledElseAssign<AbstractScaleBalance>(this, "Balance");
+        base.Awake();
+    }
+
+    protected override void OnInvoke(PAYLOAD payload)
+    {
+        foreach(ILoad load in payload.Parent.GetComponents<ILoad>())
+            if (payload.IsActive) 
+                Balance.RegisterWeight(load);
+            else Balance.RemoveWeight(load);
+    }
+
+}
+
+public abstract class ColourAndUncolourOn<HANDLER, PAYLOAD>
+    : ParentAwareEventResponder<HANDLER, PAYLOAD>, IRequireAuthorisation<IColourable> where PAYLOAD : IPParentCoreComponent, IPActive
+{
+    [SerializeField] protected Color ActiveColour;
+
+    protected IColourable[] colourables;
+    protected Color[] InactiveColours;
+
+    public object Key { protected get; set; }
+
+    protected override void Awake()
+    {
+        base.Awake();
+        colourables = Parent.GetComponentsInChildren<IColourable>();
+        InactiveColours = colourables.Select(c => c.GetMaterialColor()).ToArray();
+    }
+
+    protected override void OnInvoke(PAYLOAD payload)
+    {
+        if (IsInvolved(payload))
+        {
+            for (int i = 0; i < colourables.Count(); i++)
+                colourables[i].SetMaterialColor(payload.IsActive? ActiveColour : InactiveColours[i], Key);
         }
     }
 }

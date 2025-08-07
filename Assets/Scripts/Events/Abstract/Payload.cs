@@ -21,3 +21,8 @@ public interface IPCollidee
 {
     GameObject Collidee { get; }
 }
+
+public interface IPCollidees
+{
+    GameObject[] Collidees { get; }
+}

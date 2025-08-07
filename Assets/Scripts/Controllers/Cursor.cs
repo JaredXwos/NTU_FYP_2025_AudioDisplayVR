@@ -1,31 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Unity.Collections;
 using UnityEngine;
 
-
-public record GrabPayload : EventPayload, IPParentCoreComponent, IPActive
-{
-    public CoreComponent Parent { get; }
-    public bool IsActive { get; }
-    public GrabPayload(CoreComponent parent, bool isActive)
-    {
-        Parent = parent;
-        IsActive = isActive;
-    }
-}
 public class Cursor : Dispatch
 {
     [Header("Grabbing")]
-    [SerializeField] private float grabRadius;
-    [SerializeField, ReadOnly] private int grabCount = 0;
     [SerializeField] private bool grabEnabled;
+    [SerializeField] private string GrabbedName = string.Empty;
 
     [Header("Input Interface")]
     [SerializeField] private InputInterface input;
 
-    private readonly Dictionary<IGrabbable, (int, Vector3)> grabbed = new();
+    private (int rot, Vector3 pos, IGrabbable item)? grabbed = null;
 
     protected override void Awake()
     {
@@ -33,9 +17,7 @@ public class Cursor : Dispatch
         PayloadType = typeof(GrabPayload);
         base.Awake();
 
-        InputInterface[] inputs = GetComponents<InputInterface>();
-        input ??= inputs.FirstOrDefault(ii => ii.enabled) ?? inputs.First();
-        if (!input.enabled) input.enabled = true;
+        Check.PropertyEnabledElseAssign<InputInterface>(this, "input");
         gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
     }
 
@@ -50,28 +32,28 @@ public class Cursor : Dispatch
         {
             if (input.IsGrabbing)
             {
-                foreach (Collider hit in Physics.OverlapSphere(transform.position, grabRadius))
-                {
-                    var grabbable = hit.GetComponentInParent<IGrabbable>();
-                    if (grabbable == null || !grabbable.CanBeMoved) continue;
+                if (grabbed.HasValue)
+                    grabbed.Value.item.SetTransform(transform.position + grabbed.Value.pos, input.PieceOrientation + grabbed.Value.rot);
 
-                    if (!grabbed.ContainsKey(grabbable))
-                    {
-                        grabbed[grabbable] = (grabbable.Orientation - input.PieceOrientation, grabbable.Position - transform.position);
-                        CoreComponent Parent = hit.transform.root.gameObject.GetComponent<CoreComponent>();
-                        Invoke(new GrabPayload(Parent, true));
-                    }
+                else if (
+                    World.CheckCollision(Vector3Int.RoundToInt(input.PiecePosition), out CoreComponent collided) &&
+                    collided is IGrabbable grabbable &&
+                    grabbable.CanBeMoved
+                ){
+                    grabbed = (
+                        grabbable.Orientation - input.PieceOrientation,
+                        grabbable.Position - transform.position,
+                        grabbable
+                    );
+                    GrabbedName = collided.name;
+                    Invoke(new GrabPayload(collided, true));
                 }
-                grabCount = grabbed.Count;
-                foreach(var(grabbable, (rotationDifference, positionDifference)) in grabbed)
-                    grabbable.SetTransform(transform.position + positionDifference, input.PieceOrientation + rotationDifference);
             }
             else
             {
-                grabbed.Clear();
-                input.PieceOrientation = 0;
+                grabbed = null;
+                GrabbedName = string.Empty;
             }
         }
     }
-
 }

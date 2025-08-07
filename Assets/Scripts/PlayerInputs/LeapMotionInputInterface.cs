@@ -1,4 +1,5 @@
 using Leap;
+using System.Threading;
 using UnityEngine;
 
 [RequireComponent(typeof(LeapServiceProvider))]

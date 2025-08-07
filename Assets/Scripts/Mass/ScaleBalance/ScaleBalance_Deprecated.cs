@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
-using Unity.Mathematics;
 using UnityEngine;
 
-public class ScaleBalance : MonoBehaviour {
+public class ScaleBalance_Deprecated : MonoBehaviour, IHasOrientation {
     [SerializeField] private float momentOfInertia = 2f;
     [SerializeField, ReadOnly] private Vector3 angularAcceleration = Vector3.zero;
     [SerializeField, ReadOnly] private Vector3 angularVelocity = Vector3.zero;
@@ -21,7 +20,7 @@ public class ScaleBalance : MonoBehaviour {
     #region MonoBehavior
     private void Awake()
     {
-        Check.ForLocalComponentAndDisable<ScaleBalance>(this);
+        Check.ForLocalComponentAndDisable<ScaleBalance_Deprecated>(this);
         origin = GetComponentsInChildren<Renderer>()
             .Select(r => r.bounds)
             .Aggregate(

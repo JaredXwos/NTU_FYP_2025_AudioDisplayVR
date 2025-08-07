@@ -687,8 +687,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1139331762}
-  - component: {fileID: 1139331763}
-  - component: {fileID: 1139331765}
   - component: {fileID: 1139331764}
   - component: {fileID: 1139331766}
   - component: {fileID: 1139331769}
@@ -696,6 +694,8 @@ GameObject:
   - component: {fileID: 1139331768}
   - component: {fileID: 1139331770}
   - component: {fileID: 1139331771}
+  - component: {fileID: 1139331773}
+  - component: {fileID: 1139331772}
   m_Layer: 0
   m_Name: Base
   m_TagString: Untagged
@@ -718,21 +718,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1139331763
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1139331761}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6a3bb2fa0e706146a62b889b07644b4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  terrainData: {fileID: 11400000, guid: 25f9491dcf47cc34e9d93fd00789f2df, type: 2}
-  cubeMaterial: {fileID: 2100000, guid: 0f521ae7336a45d4d9132690024e7740, type: 2}
-  pieceCollisionEnabled: 1
 --- !u!114 &1139331764
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -745,28 +730,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00b23444f1db09d41bcf13156e70dbb1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chunk: {fileID: 1139331763}
-  balance: {fileID: 1139331765}
+  chunk: {fileID: 0}
+  balance: {fileID: 0}
   body: []
---- !u!114 &1139331765
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1139331761}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 881d5b6edf064284688c5cd5ddd421a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  momentOfInertia: 50
-  angularAcceleration: {x: 0, y: 0, z: 0}
-  angularVelocity: {x: 0, y: 0, z: 0}
-  angularDisplacement: {x: 0, y: 0, z: 0}
-  torques: []
-  weightCount: 0
-  origin: {x: 0, y: 0, z: 0}
 --- !u!114 &1139331766
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -797,7 +763,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06133a17b25db6d4c958e41b1bc04921, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  scaleBalance: {fileID: 0}
 --- !u!82 &1139331768
 AudioSource:
   m_ObjectHideFlags: 0
@@ -907,7 +872,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03ae0ccb5942e4844b345ce06c97ad26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  IsPlaying: 0
+  IsPlaying: 1
   Read: 0
   sampleRate: 0
   bufferTotalLength: 0
@@ -931,7 +896,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22e5acb931bcf694f8677e9c787a81c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LogName: LOL
+  LogName: _testlog
 --- !u!114 &1139331771
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -944,8 +909,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7209507a21f61774f9dc8241daae6c1c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ScaleBalance: {fileID: 1139331765}
+  ScaleBalance: {fileID: 0}
   TextMesh: {fileID: 1282425302}
+--- !u!114 &1139331772
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139331761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b709bc3787eaf84dbf503bd09643a51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  momentOfInertia: 2
+  angularAcceleration: {x: 0, y: 0, z: 0}
+  angularVelocity: {x: 0, y: 0, z: 0}
+  angularDisplacement: {x: 0, y: 0, z: 0}
+  torques: []
+  weightCount: 0
+  origin: {x: 0, y: 0, z: 0}
+--- !u!114 &1139331773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139331761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1f53ec9122cc70478bdc49e219e61c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  terrainData: {fileID: 11400000, guid: 25f9491dcf47cc34e9d93fd00789f2df, type: 2}
+  cubeMaterial: {fileID: 2100000, guid: 0f521ae7336a45d4d9132690024e7740, type: 2}
+  pieceCollisionEnabled: 1
 --- !u!1 &1206350287
 GameObject:
   m_ObjectHideFlags: 0
