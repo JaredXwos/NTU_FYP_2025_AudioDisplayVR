@@ -40,6 +40,8 @@ public class Piece : CollidingComponent, IGrabbable, IHas<EventHandler<FitEvent,
     }
     protected virtual void Update()
     {
+        transform.position = piecePosition.Value;
+        transform.localEulerAngles = new Vector3(0, 0, pieceOrientation.Value * 90);
         if (targetBody.Count() == 0) ResetHeights(stackHeights);
         canBeMoved = CanBeMoved;
         SetTransform(transform.position, (int) transform.localEulerAngles.z / 90);
@@ -47,6 +49,7 @@ public class Piece : CollidingComponent, IGrabbable, IHas<EventHandler<FitEvent,
             collidee = collided.Select(c => c.Value.name).ToHashSet().ToArray();
         illegal = !AttemptUpdate();
         transform.position = piecePosition.Value;
+        transform.localEulerAngles = new Vector3(0, 0, pieceOrientation.Value * 90);
         Render();
     }
     #endregion
