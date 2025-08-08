@@ -1,3 +1,4 @@
+using Leap;
 using UnityEngine;
 
 public class Cursor : Dispatch
@@ -28,6 +29,7 @@ public class Cursor : Dispatch
             Mathf.RoundToInt(input.PiecePosition.y),
             Mathf.RoundToInt(input.PiecePosition.z)
         );
+        transform.localEulerAngles = new Vector3(0, 0, input.PieceOrientation * 90);
         if (grabEnabled)
         {
             if (input.IsGrabbing)

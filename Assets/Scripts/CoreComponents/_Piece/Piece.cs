@@ -35,11 +35,14 @@ public class Piece : CollidingComponent, IGrabbable, IHas<EventHandler<FitEvent,
         if(stackHeights == Vector3Int.zero)
             ResetHeights();
         else ResetHeights(stackHeights);
+        SetTransform(transform.position, (int)transform.localEulerAngles.z / 90);
         base.Awake();
     }
     protected virtual void Update()
     {
+        if (targetBody.Count() == 0) ResetHeights(stackHeights);
         canBeMoved = CanBeMoved;
+        SetTransform(transform.position, (int) transform.localEulerAngles.z / 90);
         if (World.CheckCollision(targetBody, out Dictionary<Vector3Int, CoreComponent> collided))
             collidee = collided.Select(c => c.Value.name).ToHashSet().ToArray();
         illegal = !AttemptUpdate();

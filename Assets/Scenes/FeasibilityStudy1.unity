@@ -129,15 +129,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 5337463665100020553, guid: a7feec1022b84d444b0aeb55859f0470, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.76827
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5337463665100020553, guid: a7feec1022b84d444b0aeb55859f0470, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -3.97165
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5337463665100020553, guid: a7feec1022b84d444b0aeb55859f0470, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 10.20784
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5337463665100020553, guid: a7feec1022b84d444b0aeb55859f0470, type: 3}
       propertyPath: m_LocalRotation.w
@@ -522,7 +522,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6a3bb2fa0e706146a62b889b07644b4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sharedMaterial: {fileID: 2100000, guid: bc6a9bc4cbc10a84e92c8123629e2e63, type: 2}
+  sharedMaterial: {fileID: 2100000, guid: 0f521ae7336a45d4d9132690024e7740, type: 2}
   data: {fileID: 11400000, guid: 81abbd737efc32945a6525d25f4fdf8c, type: 2}
 --- !u!1 &1206350287
 GameObject:
@@ -718,6 +718,7 @@ GameObject:
   - component: {fileID: 1498195934}
   - component: {fileID: 1498195936}
   - component: {fileID: 1498195935}
+  - component: {fileID: 1498195937}
   m_Layer: 0
   m_Name: InputInterface
   m_TagString: Untagged
@@ -747,7 +748,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1498195933}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cafd0682f748b324b98d3f9fb227aff7, type: 3}
   m_Name: 
@@ -767,7 +768,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1498195933}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 025cc0fa7b46aa541aba29d28d35ac09, type: 3}
   m_Name: 
@@ -789,6 +790,23 @@ MonoBehaviour:
   _reconnectionAttempts: 5
   _reconnectionInterval: 180
   _trackFiducialMarkers: 0
+--- !u!114 &1498195937
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1498195933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba094d560d515744ca461dc413d49fe0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _clockwiseMoment: 0
+  _pieceOrientation: 0
+  _piecePosition: {x: 0, y: 0, z: 0}
+  _isGrabbing: 0
+  sensitivity: 1
 --- !u!1 &1717052969
 GameObject:
   m_ObjectHideFlags: 0
