@@ -127,6 +127,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 5037308393107475330, guid: a7feec1022b84d444b0aeb55859f0470, type: 3}
+      propertyPath: canBeMoved
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5337463665100020553, guid: a7feec1022b84d444b0aeb55859f0470, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -806,7 +810,7 @@ MonoBehaviour:
   _pieceOrientation: 0
   _piecePosition: {x: 0, y: 0, z: 0}
   _isGrabbing: 0
-  sensitivity: 1
+  sensitivity: 5
 --- !u!1 &1717052969
 GameObject:
   m_ObjectHideFlags: 0
