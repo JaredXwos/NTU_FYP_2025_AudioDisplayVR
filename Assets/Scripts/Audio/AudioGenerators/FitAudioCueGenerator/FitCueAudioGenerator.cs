@@ -24,7 +24,7 @@ public interface IFrequencyInput
     float Frequency { get; }
 }
 
-public abstract class FitCueAudioGenerator : AudioGenerator
+public abstract class FitCueAudioGenerator : AudioGenerator_Deprecated
 {
     [Header("Components")]
     // -----------------------------------------------------------------------------

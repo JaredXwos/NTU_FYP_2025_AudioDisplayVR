@@ -1,7 +1,7 @@
 using System.Linq;
 using Unity.Collections;
 using UnityEngine;
-
+[System.Serializable]
 public class GroundClearanceWeightFCAGII : MonoBehaviour, INoteIndexInput, IFrequencyInput
 {
     [SerializeField] private Sonar Sonar;

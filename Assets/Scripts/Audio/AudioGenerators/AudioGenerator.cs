@@ -1,6 +1,4 @@
 using System.Threading;
-using System.Threading.Tasks;
-using Unity.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
@@ -8,92 +6,65 @@ public abstract class AudioGenerator : MonoBehaviour
 {
 
     public bool IsPlaying;
+    protected int framesPerCallback;
 
     [Header("Read Only display settings")]
     // ----------------------------------------------------------------------
 
     [Tooltip("The current read index of the output audio buffer")]
-    [SerializeField, ReadOnly] private int Read;
+    [SerializeField] private int Read;
 
-    [SerializeField, ReadOnly] protected int sampleRate;
+    [SerializeField] protected int sampleRate;
 
     [Tooltip("The total length of a single full buffer, subbuffer length * subbuffer count")]
-    [SerializeField, ReadOnly] private int bufferTotalLength;
+    [SerializeField] protected int BufferTotalLength;
+    protected int SubBufferLength;
 
     // Buffer structure configuration
     // ----------------------------------------------------------------------
-    protected abstract int ChannelCount { get; }
-
     protected abstract int SubBufferCount { get; }
 
     [Tooltip("How long a sub buffer should be, in miliseconds")]
     protected abstract float SubBufferMinimumInterval { get; }
 
-    [Tooltip("Calculated smallest valid buffer length aligned with AudioFilterRead and longer than the minimum interval.")]
-    protected int SubBufferLength { get; private set; }
-
     // Buffers and Buffer indices
     // ----------------------------------------------------------------------
-    protected NativeArray<float>[][] outputBuffers = new NativeArray<float>[3][];
-    protected volatile int readBufferIndex = 0;
-    protected volatile int lastWritenBufferIndex = 0;
-    private Volatile<int> read = new();
+    protected RingBuffer<float> outputBuffers;
+    protected volatile int read;
+    protected volatile int write;
 
-    // Cancellation token to ensure safe exit of buffer refresh
+    // Thread Safety
     // ----------------------------------------------------------------------
-    private CancellationTokenSource tokenSource;  // This is to send the suicide instruction
-    protected CancellationToken token;            // This is to receive the suicide instruction
-    private Task backgroundbufferrefresh;
+    protected AutoResetEvent requestRefill = new(true);
 
-    #region MonoBehavior
     protected virtual void Awake()
     {
         sampleRate = AudioSettings.outputSampleRate;
-        int framesPerCallback = AudioSettings.GetConfiguration().dspBufferSize;
+        framesPerCallback = AudioSettings.GetConfiguration().dspBufferSize;
+    }
 
+    private void OnAudioFilterRead(float[] data, int channels)
+    {
+        if (IsPlaying)
+            outputBuffers.CopySliceTo(data, read);
+        if (
+            read > write && read - write > BufferTotalLength / 2 ||
+            write >= read && write - read <= BufferTotalLength / 2
+        ) requestRefill.Set();
+    }
+    protected abstract void BufferRefresh();
+
+    public static void CalculateBufferLengths(
+        float sampleRate, 
+        int SubBufferCount, 
+        float SubBufferMinimumInterval, 
+        int framesPerCallback, 
+        
+        out int SubBufferLength, 
+        out int bufferTotalLength)
+    {
         SubBufferLength = Mathf.CeilToInt(sampleRate * (SubBufferMinimumInterval / 1000f));
         SubBufferLength += framesPerCallback - (SubBufferLength % framesPerCallback);
-
         bufferTotalLength = SubBufferLength * SubBufferCount;
-
-        for (int i = 0; i < outputBuffers.Length; i++)
-        {
-            outputBuffers[i] = new NativeArray<float>[ChannelCount];
-            for (int j = 0; j < ChannelCount; j++)
-                outputBuffers[i][j] = new NativeArray<float>(bufferTotalLength, Allocator.Persistent, NativeArrayOptions.ClearMemory);
-        }
-        tokenSource = new();
-        token = tokenSource.Token;
-        backgroundbufferrefresh = Task.Run(BackgroundBufferRefresh);
     }
-
-    protected virtual void Update() => Read = read.Value;
-
-    protected virtual void OnAudioFilterRead(float[] data, int channels)
-    {
-        if(IsPlaying)
-        for (int i = 0; i < data.Length / channels; i++)
-        {
-            for (int c = 0; c < channels; c++)
-                data[i * channels + c] = outputBuffers[readBufferIndex][c % ChannelCount][read.Value];
-            if (++read.Value >= SubBufferCount * SubBufferLength)
-            {
-                read.Value = 0;
-                readBufferIndex = lastWritenBufferIndex;
-            }
-        }
-    }
-
-    protected virtual void OnDestroy()
-    {
-        tokenSource.Cancel();
-        backgroundbufferrefresh?.Wait();
-        foreach (NativeArray<float>[] output in outputBuffers)
-            foreach (NativeArray<float> buffer in output)
-                buffer.Dispose();
-        tokenSource.Dispose();
-    }
-    #endregion
-
-    protected abstract void BackgroundBufferRefresh();
 }

@@ -9,7 +9,7 @@ public interface IBinauralWhiteNoiseAGII
 }
 
 [RequireComponent(typeof(AudioSource))]
-public class BinauralWhiteNoiseAudioGenerator : AudioGenerator
+public class BinauralWhiteNoiseAudioGenerator : AudioGenerator_Deprecated
 {
     [SerializeField] private MonoBehaviour InputInterface;
     [SerializeField] private float2 earDistance = new(0.5f, 0);

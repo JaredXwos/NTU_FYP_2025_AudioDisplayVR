@@ -1,7 +1,6 @@
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
-using UnityEngine;
 
 public class SequentialSingleToneFCAG : FitCueAudioGenerator
 {

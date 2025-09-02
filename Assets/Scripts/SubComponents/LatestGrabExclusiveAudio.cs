@@ -16,7 +16,7 @@ public class LatestGrabExclusiveAudio : MonoBehaviour, IHas<EventHandler<GrabEve
                 {
                     if (this != null && this.enabled &&
                     payload != null && payload.Parent != null)
-                        foreach (AudioGenerator AG in activeCoreComponent.GetComponents<AudioGenerator>())
+                        foreach (AudioGenerator_Deprecated AG in activeCoreComponent.GetComponents<AudioGenerator_Deprecated>())
                             AG.IsPlaying = ReferenceEquals(payload.Parent, activeCoreComponent);
                 },
             this == null? "Destroyed Latest Grab Exclusive Audio" : $"Latest-grab Excl. Audio on {gameObject.name}"
