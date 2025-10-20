@@ -34,15 +34,21 @@ public abstract class UdpTransmitter : MonoBehaviour
     {
         if (udpClient == null) return;
 
-        try
+        // Send asynchronously so the main thread never stalls
+        _ = System.Threading.Tasks.Task.Run(() =>
         {
-            udpClient.Send(data, data.Length, remoteEndPoint);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("UDP send error: " + e.Message);
-        }
+            try
+            {
+                udpClient.Send(data, data.Length, remoteEndPoint);
+            }
+            catch (Exception e)
+            {
+                // Optional: only log occasionally or to a file, not every packet
+                Debug.LogWarning($"UDP send error: {e.Message}");
+            }
+        });
     }
+
 
     protected virtual void OnApplicationQuit()
     {
