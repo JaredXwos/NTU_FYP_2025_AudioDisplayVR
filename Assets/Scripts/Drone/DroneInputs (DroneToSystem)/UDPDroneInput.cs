@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class UDPDroneInput : UdpReceiver, IDroneInputInterface
 {
-    private Volatile<double> phi = new(), theta = new(), psi = new(), x = new(), y = new(), z = new();
+    private readonly Volatile<double> phi = new(), theta = new(), psi = new(), x = new(), y = new(), z = new();
 
     public double Phi => phi.Value;
     public double Theta => theta.Value;

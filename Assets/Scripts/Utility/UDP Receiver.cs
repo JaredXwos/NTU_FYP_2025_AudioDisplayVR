@@ -46,25 +46,30 @@ public abstract class UdpReceiver : MonoBehaviour
         {
             while (!token.IsCancellationRequested)
             {
-                // If socket was closed externally, break out cleanly
-                if (udpClient == null) break;
+                if (udpClient == null)
+                    break;
 
-                if (udpClient.Available > 0)
+                int available = udpClient.Available;
+                if (available > 0)
                 {
-                    byte[] data = udpClient.Receive(ref remoteEndPoint);
-                    try
+                    byte[] latestData = null;
+
+                    // Drain all pending packets, keep only the newest one
+                    while (udpClient.Available > 0)
+                        latestData = udpClient.Receive(ref remoteEndPoint);
+                    
+
+                    if (latestData != null)
                     {
-                        OnReceive(data);
+                        try
+                        {
+                            OnReceive(latestData);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"Error in OnReceive: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError($"Error in OnReceive: {ex.Message}");
-                    }
-                }
-                else
-                {
-                    // Avoid busy-waiting
-                    Thread.Sleep(2);
                 }
             }
         }
