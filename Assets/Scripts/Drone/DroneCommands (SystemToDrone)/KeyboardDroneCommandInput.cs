@@ -2,69 +2,113 @@ using UnityEngine;
 
 public class KeyboardDroneInput : MonoBehaviour, IDroneCommandInput
 {
-    [Header("Keyboard Control Settings")]
-    public float maxHorizVel = 3f;      // m/s horizontal velocity
-    public float maxVertVel = 1.5f;    // m/s climb or descent
-    public float yawRate = 1.0f;    // rad/s yaw rate
-    public float baseAltitude = 40f;    // meters starting altitude
-    public float velToTiltGain = 0.8f;  // theta = Kv * v / g
-    public float maxTiltDeg = 25f;    // degrees tilt limit
+    [SerializeField] private IHasVelocity velocity;
+    [SerializeField] private Vector3 desiredVelocity;
+    [SerializeField] private float maxVelocity;
 
-    private float yaw;        // current heading in radians
-    private float altitude;   // target altitude
-    private const float g = 9.81f;
 
-    void Awake()
+    [SerializeField] private float velocityDrop;
+    [SerializeField] private float velocityGain;
+    [SerializeField] private float controlSensitivity = 0.2f;
+
+    [Header("Tilt Limits")]
+    [SerializeField] private float maxTiltUser = 0.5f;     // radians or normalized tilt (user input)
+    [SerializeField] private float maxTiltCorrection = 1f; // stronger corrective tilt
+
+    [SerializeField] private float maxYawRate = 1.5f;
+    [SerializeField] private float yawAngle;
+
+    private void Awake()
     {
-        yaw = 0f;
-        altitude = baseAltitude;
+        Check.PropertyEnabledElseAssign<IHasVelocity>(this, "velocity");
+    }
+
+    private void Update()
+    {
+        float dt = Time.deltaTime;
+
+        // --- Forward/back control (Z-axis) ---
+        desiredVelocity.z = UpdateAxis(
+            desiredVelocity.z,
+            Input.GetKey(KeyCode.W),
+            Input.GetKey(KeyCode.S),
+            velocityGain,
+            velocityDrop,
+            dt);
+
+        // --- Left/right control (X-axis) ---
+        desiredVelocity.x = UpdateAxis(
+            desiredVelocity.x,
+            Input.GetKey(KeyCode.D),
+            Input.GetKey(KeyCode.A),
+            velocityGain,
+            velocityDrop,
+            dt);
+
+        // --- Clamp final velocity magnitude ---
+        desiredVelocity = Vector3.ClampMagnitude(desiredVelocity, maxVelocity);
+
+        // --- Yaw control (instant) ---
+        float yawInput = 0f;
+        if (Input.GetKey(KeyCode.Q)) yawInput -= 1f;
+        if (Input.GetKey(KeyCode.E)) yawInput += 1f;
+
+        // Accumulate yaw heading (degrees)
+        yawAngle += yawInput * maxYawRate * dt * Mathf.Rad2Deg;
+
+        // Wrap yaw angle to avoid overflow
+        if (yawAngle > Mathf.PI * 2) yawAngle -= Mathf.PI*2;
+        else if (yawAngle < -Mathf.PI * 2) yawAngle += Mathf.PI * 2;
+
+        // Rotate desired velocity into heading space
+        Quaternion yawRotation = Quaternion.Euler(0f, yawAngle, 0f);
+        desiredVelocity = yawRotation * new Vector3(desiredVelocity.x, 0f, desiredVelocity.z);
     }
 
     public DroneCommand GetCommand()
     {
-        // 1. Read input in the drone's local frame (FPV style)
-        float right = 0f;
-        float forward = 0f;
-        float climb = 0f;
+        Vector3 currentVelocity = transform.InverseTransformDirection(velocity?.Velocity ?? Vector3.zero);
+        Vector3 error = desiredVelocity - currentVelocity;
 
-        if (Input.GetKey(KeyCode.W)) forward += 1f;
-        if (Input.GetKey(KeyCode.S)) forward -= 1f;
-        if (Input.GetKey(KeyCode.A)) right += 1f;
-        if (Input.GetKey(KeyCode.D)) right -= 1f;
-        if (Input.GetKey(KeyCode.R)) climb += 1f;
-        if (Input.GetKey(KeyCode.F)) climb -= 1f;
+        float roll = ComputeTilt(error.x, currentVelocity.x);
+        float pitch = ComputeTilt(error.z, currentVelocity.z);
+        float yaw = yawAngle;
+        float altitude = 0f;
 
-        // Normalize to avoid faster diagonal movement
-        Vector3 input = new Vector3(right, climb, forward).normalized;
-
-        // 2. Convert to desired body-frame velocities
-        float vx_body = input.x * maxHorizVel;
-        float vz_body = input.z * maxHorizVel;
-        float vy_body = input.y * maxVertVel;
-
-        // 3. Update yaw heading (Q and E keys)
-        if (Input.GetKey(KeyCode.E)) yaw -= yawRate * Time.deltaTime;
-        if (Input.GetKey(KeyCode.Q)) yaw += yawRate * Time.deltaTime;
-
-        // Keep yaw within -pi to +pi
-        yaw = Mathf.Repeat(yaw + Mathf.PI, 2f * Mathf.PI) - Mathf.PI;
-
-        // 4. Integrate altitude using climb velocity
-        altitude += vy_body * Time.deltaTime;
-
-        // 5. Map body velocities to tilt angles
-        // Pitch (theta) controls forward/back motion
-        // Roll  (phi) controls left/right motion
-        float theta = Mathf.Clamp(vz_body / g * velToTiltGain,
-                                  -maxTiltDeg * Mathf.Deg2Rad,
-                                   maxTiltDeg * Mathf.Deg2Rad);
-        float phi = Mathf.Clamp(-vx_body / g * velToTiltGain,
-                                  -maxTiltDeg * Mathf.Deg2Rad,
-                                   maxTiltDeg * Mathf.Deg2Rad);
-
-        // 6. Return the command: roll, pitch, yaw, altitude
-        return new DroneCommand(phi, theta, yaw, altitude);
+        return new DroneCommand(roll, pitch, yaw, altitude);
     }
 
     public bool IsActive() => true;
+
+    private static float UpdateAxis(
+    float current,
+    bool positiveHeld,
+    bool negativeHeld,
+    float gain,
+    float dropTime,
+    float deltaTime)
+    {
+        if (positiveHeld)
+            current += gain * deltaTime;
+        else if (negativeHeld)
+            current -= gain * deltaTime;
+        else
+            current = Mathf.MoveTowards(current, 0f, (gain / dropTime) * deltaTime);
+
+        return current;
+    }
+
+    private float ComputeTilt(float error, float current)
+    {
+        // Convert velocity error to tilt using proportional control
+        float tilt = error * controlSensitivity;
+
+        // Determine if we're accelerating (same direction) or decelerating (opposite)
+        bool sameDirection = Mathf.Sign(error) == Mathf.Sign(current);
+
+        // Select appropriate clamp
+        float maxTilt = sameDirection ? maxTiltUser : maxTiltCorrection;
+
+        return Mathf.Clamp(tilt, -maxTilt, maxTilt);
+    }
 }
