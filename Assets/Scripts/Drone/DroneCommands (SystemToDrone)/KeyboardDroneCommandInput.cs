@@ -5,6 +5,7 @@ public class KeyboardDroneInput : MonoBehaviour, IDroneCommandInput
     [SerializeField] private IHasVelocity velocity;
     [SerializeField] private Vector3 desiredVelocity;
     [SerializeField] private float maxVelocity;
+    [SerializeField] private Vector3 Velocity;
 
 
     [SerializeField] private float velocityDrop;
@@ -17,6 +18,10 @@ public class KeyboardDroneInput : MonoBehaviour, IDroneCommandInput
 
     [SerializeField] private float maxYawRate = 1.5f;
     [SerializeField] private float yawAngle;
+
+    [SerializeField] private float accelerationGain;
+    [SerializeField] private float damping;
+    [SerializeField] private float timePerCommand;
 
     private void Awake()
     {
@@ -67,15 +72,41 @@ public class KeyboardDroneInput : MonoBehaviour, IDroneCommandInput
 
     public DroneCommand GetCommand()
     {
-        Vector3 currentVelocity = transform.InverseTransformDirection(velocity?.Velocity ?? Vector3.zero);
+        Vector3 currentVelocity = transform.InverseTransformDirection(Velocity);
         Vector3 error = desiredVelocity - currentVelocity;
 
         float roll = ComputeTilt(error.x, currentVelocity.x);
         float pitch = ComputeTilt(error.z, currentVelocity.z);
         float yaw = yawAngle;
         float altitude = 0f;
-
+        UpdateVelocity(roll, pitch, timePerCommand);
         return new DroneCommand(roll, pitch, yaw, altitude);
+    }
+
+    private void UpdateVelocity(float roll, float pitch, float deltaTime)
+    {
+        // 1. Convert roll/pitch (radians) to local-frame acceleration vector.
+        // Positive pitch (nose up) accelerates backward in body frame.
+        // Positive roll (right wing down) accelerates right in body frame.
+        // Using sin(theta) * g  lateral acceleration component from tilt.
+        Vector3 localAccel = new Vector3(
+            Mathf.Sin(roll),   // right (+X)
+            0f,                               // no direct vertical accel here
+            Mathf.Sin(pitch)  // forward (+Z)
+        ) * accelerationGain;
+
+        // 2. Rotate local acceleration into world/global frame using current orientation.
+        Vector3 worldAccel = transform.rotation * localAccel;
+
+        // 3. Integrate acceleration over time to get change in velocity.
+        Vector3 deltaV = worldAccel * deltaTime;
+
+        // 4. Apply change to current velocity.
+        Velocity += deltaV;
+
+        // 5. Apply simple exponential damping (drag / air resistance).
+        //    v_new = v_old * (1 - damping * dt)   exp(-damping * dt)
+        Velocity *= Mathf.Exp(-damping * deltaTime);
     }
 
     public bool IsActive() => true;

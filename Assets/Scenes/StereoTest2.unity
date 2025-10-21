@@ -182,6 +182,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   desiredVelocity: {x: 0, y: 0, z: 0}
   maxVelocity: 3
+  Velocity: {x: 0, y: 0, z: 0}
   velocityDrop: 1
   velocityGain: 5
   controlSensitivity: 0.2
@@ -189,6 +190,9 @@ MonoBehaviour:
   maxTiltCorrection: 1
   maxYawRate: -0.03
   yawAngle: 0
+  accelerationGain: 10
+  damping: 0
+  timePerCommand: 0.05
 --- !u!114 &257981596
 MonoBehaviour:
   m_ObjectHideFlags: 0
