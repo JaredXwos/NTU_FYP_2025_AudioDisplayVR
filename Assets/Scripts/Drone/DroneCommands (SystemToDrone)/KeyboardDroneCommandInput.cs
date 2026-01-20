@@ -1,27 +1,42 @@
 using UnityEngine;
-
+[DefaultExecutionOrder(1000)]
 public class KeyboardDroneInput : MonoBehaviour, IDroneCommandInput
 {
     [SerializeField] private IHasVelocity velocity;
-    [SerializeField] private Vector3 desiredVelocity;
+
+    [Header("General")]
     [SerializeField] private float maxVelocity;
-    [SerializeField] private Vector3 Velocity;
 
+    [Header("Pitch: Local Z Direction")]
+    [SerializeField] private float localForwardAccelerationTilt;
+    [SerializeField] private float localBreakingTilt;
+    [SerializeField] private bool isLocalForwardAccelerating;
+    [SerializeField] private bool isBreaking;
 
-    [SerializeField] private float velocityDrop;
-    [SerializeField] private float velocityGain;
-    [SerializeField] private float controlSensitivity = 0.2f;
-
-    [Header("Tilt Limits")]
-    [SerializeField] private float maxTiltUser = 0.5f;     // radians or normalized tilt (user input)
-    [SerializeField] private float maxTiltCorrection = 1f; // stronger corrective tilt
-
-    [SerializeField] private float maxYawRate = 1.5f;
+    [Header("Yaw: Global Y Direction")]
+    [SerializeField] private float yawRate;
     [SerializeField] private float yawAngle;
 
-    [SerializeField] private float accelerationGain;
-    [SerializeField] private float damping;
-    [SerializeField] private float timePerCommand;
+    [Header("Roll: Local X Direction")]
+    [SerializeField] private float localRollBalancingCoefficient;
+    [SerializeField] private float localRollCorrection;
+    [SerializeField] private float localStrafeTilt;
+
+    [Header("DEBUG: Velocity Decomposition")]
+    [SerializeField] private bool debugVelocity = true;
+    [SerializeField] private float debugRayScale = 0.25f;
+
+    // Debug scalars (visible in Inspector)
+    [SerializeField] private float vRight;
+    [SerializeField] private float vUp;
+    [SerializeField] private float vForward;
+
+    private const KeyCode LocalForward = KeyCode.W;
+    private const KeyCode LocalBreak = KeyCode.S;
+    private const KeyCode YawCounterclockwise = KeyCode.Q;
+    private const KeyCode YawClockwise = KeyCode.E;
+    private const KeyCode LocalStrafeLeft = KeyCode.A;
+    private const KeyCode LocalStrafeRight = KeyCode.D;
 
     private void Awake()
     {
@@ -30,116 +45,77 @@ public class KeyboardDroneInput : MonoBehaviour, IDroneCommandInput
 
     private void Update()
     {
+        if (velocity == null) return;
+
         float dt = Time.deltaTime;
 
-        // --- Forward/back control (Z-axis) ---
-        desiredVelocity.z = UpdateAxis(
-            desiredVelocity.z,
-            Input.GetKey(KeyCode.W),
-            Input.GetKey(KeyCode.S),
-            velocityGain,
-            velocityDrop,
-            dt);
+        // --- Yaw control (GLOBAL Y) ---
+        if (Input.GetKey(YawCounterclockwise))
+            yawAngle += yawRate * dt;
+        else if (Input.GetKey(YawClockwise))
+            yawAngle -= yawRate * dt;
 
-        // --- Left/right control (X-axis) ---
-        desiredVelocity.x = UpdateAxis(
-            desiredVelocity.x,
-            Input.GetKey(KeyCode.D),
-            Input.GetKey(KeyCode.A),
-            velocityGain,
-            velocityDrop,
-            dt);
+        // --- Forward/back control (LOCAL Z) ---
+        isLocalForwardAccelerating = Input.GetKey(LocalForward);
+        isBreaking = Input.GetKey(LocalBreak);
 
-        // --- Clamp final velocity magnitude ---
-        desiredVelocity = Vector3.ClampMagnitude(desiredVelocity, maxVelocity);
+        // --- Velocity decomposition in BODY axes ---
+        Vector3 vWorld = velocity.Velocity;
 
-        // --- Yaw control (instant) ---
-        float yawInput = 0f;
-        if (Input.GetKey(KeyCode.Q)) yawInput -= 1f;
-        if (Input.GetKey(KeyCode.E)) yawInput += 1f;
+        vRight = Vector3.Dot(vWorld, transform.right);    // LOCAL X
+        vUp = Vector3.Dot(vWorld, transform.up);       // LOCAL Y
+        vForward = Vector3.Dot(vWorld, transform.forward);  // LOCAL Z
 
-        // Accumulate yaw heading (degrees)
-        yawAngle += yawInput * maxYawRate * dt * Mathf.Rad2Deg;
+        // --- Roll braking control (LOCAL X) ---
+        float vLat = vRight;
 
-        // Wrap yaw angle to avoid overflow
-        if (yawAngle > Mathf.PI * 2) yawAngle -= Mathf.PI*2;
-        else if (yawAngle < -Mathf.PI * 2) yawAngle += Mathf.PI * 2;
+        localRollCorrection = Mathf.Clamp(
+            -localRollBalancingCoefficient * vLat,
+            -0.5f,
+            0.5f
+        );
 
-        // Rotate desired velocity into heading space
-        Quaternion yawRotation = Quaternion.Euler(0f, yawAngle, 0f);
-        desiredVelocity = yawRotation * new Vector3(desiredVelocity.x, 0f, desiredVelocity.z);
+        if(Input.GetKey(LocalStrafeLeft))
+            localRollCorrection -= localStrafeTilt;
+        else if(Input.GetKey(LocalStrafeRight))
+            localRollCorrection += localStrafeTilt;
     }
 
     public DroneCommand GetCommand()
     {
-        Vector3 currentVelocity = transform.InverseTransformDirection(Velocity);
-        Vector3 error = desiredVelocity - currentVelocity;
-
-        float roll = ComputeTilt(error.x, currentVelocity.x);
-        float pitch = ComputeTilt(error.z, currentVelocity.z);
-        float yaw = yawAngle;
-        float altitude = 0f;
-        UpdateVelocity(roll, pitch, timePerCommand);
-        return new DroneCommand(roll, pitch, yaw, altitude);
-    }
-
-    private void UpdateVelocity(float roll, float pitch, float deltaTime)
-    {
-        // 1. Convert roll/pitch (radians) to local-frame acceleration vector.
-        // Positive pitch (nose up) accelerates backward in body frame.
-        // Positive roll (right wing down) accelerates right in body frame.
-        // Using sin(theta) * g  lateral acceleration component from tilt.
-        Vector3 localAccel = new Vector3(
-            Mathf.Sin(roll),   // right (+X)
-            0f,                               // no direct vertical accel here
-            Mathf.Sin(pitch)  // forward (+Z)
-        ) * accelerationGain;
-
-        // 2. Rotate local acceleration into world/global frame using current orientation.
-        Vector3 worldAccel = transform.rotation * localAccel;
-
-        // 3. Integrate acceleration over time to get change in velocity.
-        Vector3 deltaV = worldAccel * deltaTime;
-
-        // 4. Apply change to current velocity.
-        Velocity += deltaV;
-
-        // 5. Apply simple exponential damping (drag / air resistance).
-        //    v_new = v_old * (1 - damping * dt)   exp(-damping * dt)
-        Velocity *= Mathf.Exp(-damping * deltaTime);
+        return new DroneCommand(
+            localRollCorrection,                          // Phi (roll, Z axis)
+            isLocalForwardAccelerating
+                ? localForwardAccelerationTilt
+                : isBreaking
+                    ? localBreakingTilt
+                    : 0f,                                     // Theta (pitch, X axis)
+            yawAngle,                                     // Psi (yaw, Y axis)
+            0f
+        );
     }
 
     public bool IsActive() => true;
 
-    private static float UpdateAxis(
-    float current,
-    bool positiveHeld,
-    bool negativeHeld,
-    float gain,
-    float dropTime,
-    float deltaTime)
+    private void OnDrawGizmos()
     {
-        if (positiveHeld)
-            current += gain * deltaTime;
-        else if (negativeHeld)
-            current -= gain * deltaTime;
-        else
-            current = Mathf.MoveTowards(current, 0f, (gain / dropTime) * deltaTime);
+        if (!debugVelocity || velocity == null) return;
 
-        return current;
-    }
+        Vector3 p = transform.position;
+        Vector3 vWorld = velocity.Velocity;
 
-    private float ComputeTilt(float error, float current)
-    {
-        // Convert velocity error to tilt using proportional control
-        float tilt = error * controlSensitivity;
+        // Total world velocity (white)
+        Gizmos.color = Color.white;
+        Gizmos.DrawLine(p, p + vWorld * debugRayScale);
 
-        // Determine if we're accelerating (same direction) or decelerating (opposite)
-        bool sameDirection = Mathf.Sign(error) == Mathf.Sign(current);
+        // Body-axis components
+        Gizmos.color = Color.red;    // right (X)
+        Gizmos.DrawLine(p, p + debugRayScale * vRight * transform.right);
 
-        // Select appropriate clamp
-        float maxTilt = sameDirection ? maxTiltUser : maxTiltCorrection;
+        Gizmos.color = Color.green;  // up (Y)
+        Gizmos.DrawLine(p, p + debugRayScale * vUp * transform.up);
 
-        return Mathf.Clamp(tilt, -maxTilt, maxTilt);
+        Gizmos.color = Color.blue;   // forward (Z)
+        Gizmos.DrawLine(p, p + debugRayScale * vForward * transform.forward);
     }
 }

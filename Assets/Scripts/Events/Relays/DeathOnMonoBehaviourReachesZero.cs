@@ -1,1 +1,0 @@
-public class DeathOnMonoBehaviourReachesZero : DeathOn<ReachesZeroEvent, IPParentCoreComponent> { }

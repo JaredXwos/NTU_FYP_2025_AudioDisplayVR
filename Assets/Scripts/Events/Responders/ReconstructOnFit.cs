@@ -1,1 +1,0 @@
-public class ReconstructOnFit : ReconstructOn<FitEvent, IPParentCoreComponent> { }

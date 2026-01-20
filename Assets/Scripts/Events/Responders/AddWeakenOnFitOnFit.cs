@@ -1,1 +1,0 @@
-public class AddWeakenOnFitOnFit : AddMonoBehaviourOn<FitEvent, IPParentCoreComponent, WeakenOnFit> { }

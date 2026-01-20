@@ -4,7 +4,6 @@ public class SetAsRootTransform : MonoBehaviour
 {
     private void Update()
     {
-        transform.root.position = transform.position;
-        transform.root.rotation = transform.rotation;
+        transform.root.SetPositionAndRotation(transform.position, transform.rotation);
     }
 }

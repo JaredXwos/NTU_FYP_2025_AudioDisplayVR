@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -105,3 +106,4 @@ public sealed class ManagedReferenceDrawer : PropertyDrawer
         return types!;
     }
 }
+#endif

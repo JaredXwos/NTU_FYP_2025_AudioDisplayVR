@@ -21,10 +21,12 @@ public struct GenerateExponentialChirp: IJobParallelFor
     {
         _duration = Output.Length / SampleRate;
 
-        if (math.abs(EndFreq - StartFreq) < 1e-6f)
+        float rel = math.abs((EndFreq - StartFreq) / StartFreq);
+        if (rel < 0.0001f)    // 0.01% threshold (tunable)
         {
+            // Treat as pure tone
             _ratio = 1f;
-            _invLnRatioOrLinear = 1f; // treat as linear in t
+            _invLnRatioOrLinear = 1f;
         }
         else
         {

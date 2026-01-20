@@ -16,8 +16,8 @@ public class NativeArrayQueue<T> : MonoBehaviour where T : unmanaged
             Offset = 0;
         }
 
-        public int Remaining => Array.Length - Offset;
-        public bool IsFullyConsumed => Offset >= Array.Length;
+        public readonly int Remaining => Array.Length - Offset;
+        public readonly bool IsFullyConsumed => Offset >= Array.Length;
 
         /// <summary>
         /// Takes up to <paramref name="requested"/> elements from this entry,
@@ -83,15 +83,19 @@ public class NativeArrayQueue<T> : MonoBehaviour where T : unmanaged
     // UNITY LIFECYCLE
     private void Update()
     {
-        // Generate new arrays if flagged
-        for (int i = 0; i < _updateCount; i++)
-            if (_pendingGenerate)
+        for (int i = 0; i < _updateCount;) if (_pendingGenerate)
             {
                 NativeArray<T> arr = _generateFunc();
-                if (arr != null && arr.IsCreated && arr.Length > 0)
+                if (arr.IsCreated && arr.Length > 0)
                 {
                     _arrays.Add(new ArrayEntry(arr));
                     _validCount += arr.Length;
+                    i += arr.Length;
+                }
+                else if (arr.IsCreated)
+                {
+                    arr.Dispose();
+                    break;
                 }
             }
             else break;
@@ -105,20 +109,40 @@ public class NativeArrayQueue<T> : MonoBehaviour where T : unmanaged
         _disposeReady.Clear();
     }
 
+    private void OnApplicationQuit()
+    {
+        for (int i = 0; i < _arrays.Count; i++)
+            _disposeStaging.Add(_arrays[i].Array);
+        _arrays.Clear();
+
+        // 2. Promote staged to ready
+        PromoteStagedDisposals();
+
+        // 3. Dispose exactly once
+        for (int i = 0; i < _disposeReady.Count; i++)
+            _disposeReady[i].Dispose();
+
+        _disposeReady.Clear();
+        _disposeStaging.Clear();
+    }
+
     private void OnDestroy()
     {
-        foreach (var entry in _arrays)
-            if (entry.Array.IsCreated) entry.Array.Dispose();
-
-        foreach (var arr in _disposeStaging)
-            if (arr.IsCreated) arr.Dispose();
-
-        foreach (var arr in _disposeReady)
-            if (arr.IsCreated) arr.Dispose();
-
+        for (int i = 0; i < _arrays.Count; i++)
+            _disposeStaging.Add(_arrays[i].Array);
         _arrays.Clear();
-        _disposeStaging.Clear();
+
+        // 2. Promote staged to ready
+        PromoteStagedDisposals();
+
+        // 3. Dispose exactly once
+        for (int i = 0; i < _disposeReady.Count; i++)
+        {
+            _disposeReady[i].Dispose();
+        }
+
         _disposeReady.Clear();
+        _disposeStaging.Clear();
     }
 
     // PRIVATE HELPER METHODS
@@ -148,7 +172,9 @@ public class NativeArrayQueue<T> : MonoBehaviour where T : unmanaged
             }
             else _arrays[0] = entry; // write the updated offset back
         }
+
         _validCount -= count;
+        if(_validCount < 0) _validCount = 0;
 
         return slices;
     }
