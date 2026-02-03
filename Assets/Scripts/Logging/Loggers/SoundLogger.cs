@@ -3,29 +3,22 @@ using UnityEngine;
 
 public sealed class BinauralEntry : Entry, IHasDummy<BinauralEntry>
 {
-    public readonly float Timestamp;
     public readonly float Left;
     public readonly float Right;
-    public BinauralEntry(float timestamp, float left, float right)
+    public BinauralEntry(float left, float right)
     {
-        Timestamp = timestamp;
         Left = left;
         Right = right;
     }
-    public static CollidedEntry Dummy => new(0f, false);
+    public static BinauralEntry Dummy => new(0, 0);
 }
 
 public class SoundLogger : Logger
 {
-    [SerializeField, Range(1, 30)] private int LogDuration;
-    private int deltaTime;
     private float left;
     private bool isLeft = true;
-    private float timeStamp = 0f;
 
     public readonly LogBook logBook = new(BinauralEntry.Dummy);
-    private void Awake()
-        => deltaTime = 1/AudioSettings.outputSampleRate;
     public void Log(float sample)
     {
         if (isLeft) { 
@@ -34,8 +27,7 @@ public class SoundLogger : Logger
         }
         else
         {
-            logBook.AddEntry(new BinauralEntry(timeStamp, left, sample));
-            timeStamp += deltaTime;
+            logBook.AddEntry(new BinauralEntry(left, sample));
             isLeft = true;
         }
     }

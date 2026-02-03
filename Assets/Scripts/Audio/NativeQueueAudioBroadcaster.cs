@@ -38,9 +38,9 @@ public sealed class NativeQueueAudioBroadcaster : MonoBehaviour
         foreach (var slice in slices)
             for (int i = 0; i < slice.Length; i++)
                 if (writePos < data.Length)
+                {
                     data[writePos++] = slice[i];
-        float maxOut = 0f;
-        for (int i = 0; i < 200 && i < data.Length; i++)
-            maxOut = Mathf.Max(maxOut, Mathf.Abs(data[i]));
+                    log.Log(slice[i]);
+                }
     }
 }
